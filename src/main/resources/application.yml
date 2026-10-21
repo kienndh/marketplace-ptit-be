@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: marketplace
+  datasource:
+    url: jdbc:mysql://localhost:3307/${DB_NAME}?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
