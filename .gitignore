@@ -34,3 +34,5 @@ build/
 
 .env
 desktop.ini
+
+firebase-service-account*.json

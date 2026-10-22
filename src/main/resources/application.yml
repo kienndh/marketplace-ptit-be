@@ -14,3 +14,7 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+
+app:
+  firebase:
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
