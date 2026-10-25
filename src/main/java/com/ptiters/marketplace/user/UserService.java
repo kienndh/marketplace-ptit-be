@@ -24,7 +24,6 @@ public class UserService {
     }
 
     public UserResponse updateMe(Long userId, UpdateUserRequest request) {
-        System.out.println("UNKNOWN FIELDS = " + request.getUnknownFields());
         if (!request.getUnknownFields().isEmpty()) {
             throw ApiException.unprocessable("Unsupported Field : " +
                     String.join(", ", request.getUnknownFields().keySet()));
@@ -45,5 +44,12 @@ public class UserService {
         }
         var savedUser = userRepository.save(user);
         return modelMapper.map(savedUser, UserResponse.class);
+    }
+    @Transactional(readOnly = true)
+    public PublicUserResponse getPublicProfile(Long userId) {
+        return userRepository.findById(userId)
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                .map(user -> modelMapper.map(user, PublicUserResponse.class))
+                .orElseThrow(() -> ApiException.notFound("User not found."));
     }
 }
