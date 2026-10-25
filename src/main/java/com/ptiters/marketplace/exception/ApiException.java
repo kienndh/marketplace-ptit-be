@@ -2,12 +2,14 @@ package com.ptiters.marketplace.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 @Getter
-public class ApiException extends RuntimeException{
-    private final HttpStatus status;
+public class ApiException extends RuntimeException {
 
-    public ApiException(HttpStatus status, String detail){
+    private HttpStatusCode status;
+
+    public ApiException(HttpStatusCode status, String detail) {
         super(detail);
         this.status = status;
     }
@@ -30,5 +32,9 @@ public class ApiException extends RuntimeException{
 
     public static ApiException conflict(String detail) {
         return new ApiException(HttpStatus.CONFLICT, detail);
+    }
+
+    public static ApiException unprocessable(String detail) {
+        return new ApiException(HttpStatusCode.valueOf(422), detail);
     }
 }

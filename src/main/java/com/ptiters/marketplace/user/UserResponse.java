@@ -24,14 +24,12 @@ public class UserResponse {
     private String deliveryArea;
     @JsonProperty("default_meetup_area")
     private String defaultMeetupArea;
-    @JsonProperty("user_role")
-    private UserRole userRole;
-    @JsonProperty("user_status")
-    private UserStatus userStatus;
+    private UserRole role;
+    private UserStatus status;
     @JsonProperty("last_active_at")
     private LocalDateTime lastActiveAt;
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
-    @JsonProperty("update_at")
+    @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 }
