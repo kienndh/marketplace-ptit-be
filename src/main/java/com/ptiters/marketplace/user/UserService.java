@@ -3,12 +3,10 @@ package com.ptiters.marketplace.user;
 import com.ptiters.marketplace.exception.ApiException;
 import jakarta.persistence.EntityManager;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Getter
 @AllArgsConstructor
 @Service
 public class UserService {
@@ -23,6 +21,7 @@ public class UserService {
                 .orElseThrow(() -> ApiException.notFound("User not exists"));
     }
 
+    @Transactional
     public UserResponse updateMe(Long userId, UpdateUserRequest request) {
         if (!request.getUnknownFields().isEmpty()) {
             throw ApiException.unprocessable("Unsupported Field : " +

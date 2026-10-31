@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -20,7 +21,7 @@ import java.util.Map;
 public class UpdateUserRequest {
     @JsonProperty("full_name")
     @Size(max = 100, message = "full_name length must be at most 100 characters")
-    @NotBlank(message = "full_name must not be blank")
+    @Pattern(regexp = ".*\\S.*", message = "full_name must not be blank")
     private String fullName;
 
     @Size(max = 20, message = "phone_number must be at most 20 characters")
