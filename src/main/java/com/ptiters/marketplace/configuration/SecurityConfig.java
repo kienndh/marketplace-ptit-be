@@ -42,6 +42,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories", "/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/banks").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/{userId:\\d+}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/{id}", "/api/v1/products/{id}/images").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products/me").authenticated()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex

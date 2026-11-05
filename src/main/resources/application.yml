@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: marketplace
   datasource:
@@ -15,3 +17,8 @@ spring:
 app:
   firebase:
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

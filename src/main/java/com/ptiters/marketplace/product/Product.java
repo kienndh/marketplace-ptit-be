@@ -8,6 +8,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -64,4 +66,14 @@ public class Product {
     @Column(name = "updated_at", nullable = false,
             insertable = false, updatable = false)
     private LocalDateTime updatedAt;
+
+
+    @OneToMany(
+            mappedBy = "product",
+            fetch = FetchType.LAZY,
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+    )
+    @OrderBy("sortOrder ASC, imageId ASC")
+    private List<ProductImage> images = new ArrayList<>();
+
 }
