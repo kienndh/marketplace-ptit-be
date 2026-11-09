@@ -3,6 +3,9 @@ package com.ptiters.marketplace.product;
 
 import com.ptiters.marketplace.category.CategoryRepository;
 import com.ptiters.marketplace.exception.ApiException;
+import com.ptiters.marketplace.product.image.ProductImage;
+import com.ptiters.marketplace.product.image.ProductImageRepository;
+import com.ptiters.marketplace.product.image.ProductImageResponse;
 import com.ptiters.marketplace.user.User;
 import com.ptiters.marketplace.user.UserRepository;
 import com.ptiters.marketplace.user.UserStatus;
@@ -18,8 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -52,6 +59,9 @@ public class ProductService {
             Integer limit,
             String cursor
     ) {
+
+        validateProductFilter(form);
+
         if (limit == null) {
             limit = 20;
         }
@@ -128,9 +138,52 @@ public class ProductService {
                 ? products.subList(0, limit)
                 : products;
 
-        List<ProductResponse> items = currentPage.stream()
-                .map(product ->
-                        modelMapper.map(product, ProductResponse.class))
+
+        List<Long> productIds = products.stream()
+                .map(Product::getProductId)
+                .toList();
+
+        Map<Long, ProductImage> thumbnails = productIds.isEmpty()
+                ? Map.of()
+                : productImageRepository
+                .findByProduct_ProductIdInAndThumbnailTrue(productIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        image -> image.getProduct().getProductId(),
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+
+        List<ProductResponse> items = products.stream()
+                .map(product -> {
+                    ProductResponse response = modelMapper.map(
+                            product,
+                            ProductResponse.class
+                    );
+
+                    ProductImage thumbnail = thumbnails.get(
+                            product.getProductId()
+                    );
+
+                    List<ProductImageResponse> images = new ArrayList<>();
+
+                    if (thumbnail != null) {
+                        ProductImageResponse imageDto =
+                                new ProductImageResponse();
+
+                        imageDto.setImageId(thumbnail.getImageId());
+                        imageDto.setProductId(product.getProductId());
+                        imageDto.setImageUrl(thumbnail.getImageUrl());
+                        imageDto.setSortOrder(thumbnail.getSortOrder());
+                        imageDto.setThumbnail(thumbnail.getThumbnail());
+
+                        images.add(imageDto);
+                    }
+
+                    response.setImages(images);
+
+                    return response;
+                })
                 .toList();
 
         String nextCursor = null;
@@ -150,8 +203,6 @@ public class ProductService {
 
         return new ProductListResponse(items, nextCursor, hasMore);
     }
-
-
 
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long productId) {
@@ -337,5 +388,40 @@ public class ProductService {
 
         productRepository.save(product);
     }
+
+
+    private void validateProductFilter(ProductFilterForm form) {
+
+        if (form.getMinPrice() != null
+                && form.getMinPrice().signum() < 0) {
+            throw ApiException.badRequest(
+                    "Minimum price must not be negative."
+            );
+        }
+
+        if (form.getMaxPrice() != null
+                && form.getMaxPrice().signum() < 0) {
+            throw ApiException.badRequest(
+                    "Maximum price must not be negative."
+            );
+        }
+
+        if (form.getMinPrice() != null
+                && form.getMaxPrice() != null
+                && form.getMinPrice().compareTo(form.getMaxPrice()) > 0) {
+            throw ApiException.badRequest(
+                    "Minimum price must not exceed maximum price."
+            );
+        }
+
+        if (form.getListingType() != null
+                && !form.getListingType().isBlank()
+                && !"FIXED_PRICE".equals(form.getListingType())) {
+            throw ApiException.badRequest(
+                    "Unsupported listing type."
+            );
+        }
+    }
+
 
 }

@@ -1,18 +1,22 @@
 
-package com.ptiters.marketplace.product;
+package com.ptiters.marketplace.product.image;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.ptiters.marketplace.exception.ApiException;
+import com.ptiters.marketplace.product.Product;
+import com.ptiters.marketplace.product.ProductRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +31,129 @@ public class ProductImageService {
     private Cloudinary cloudinary;
     private ModelMapper modelMapper;
     private TransactionTemplate transactionTemplate;
+    private final CloudinaryCleanupTaskRepository cleanupTaskRepository;
+
+    private static final int MAX_IMAGES = 8;
+    private static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
+
+    private Map<?, ?> uploadToCloudinary(
+            Long productId,
+            MultipartFile file
+    ) {
+        try {
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "marketplace/products/" + productId,
+                            "resource_type", "image"
+                    )
+            );
+
+            String imageUrl = (String) result.get("secure_url");
+            String publicId = (String) result.get("public_id");
+
+            if (imageUrl == null || imageUrl.isBlank()
+                    || publicId == null || publicId.isBlank()) {
+
+                log.error(
+                        "Cloudinary returned incomplete upload response"
+                );
+
+                if (publicId != null && !publicId.isBlank()) {
+                    try {
+                        cloudinary.uploader().destroy(
+                                publicId,
+                                ObjectUtils.asMap(
+                                        "resource_type", "image"
+                                )
+                        );
+                    } catch (Exception cleanupError) {
+                        log.error(
+                                "Failed to clean up incomplete upload: {}",
+                                publicId,
+                                cleanupError
+                        );
+                    }
+                }
+
+                throw new ApiException(
+                        HttpStatus.BAD_GATEWAY,
+                        "Invalid Cloudinary upload response."
+                );
+            }
+
+            return result;
+
+        } catch (IOException e) {
+            log.error("Cloudinary upload I/O failure", e);
+
+            throw new ApiException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Image upload failed."
+            );
+
+        }catch (RuntimeException e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+
+            log.error("Unexpected Cloudinary upload failure", e);
+
+            throw new ApiException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Image storage service is unavailable."
+            );
+        }
+    }
+
+
+    private void validateImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw ApiException.badRequest("Image is required.");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw ApiException.badRequest("Image exceeds 5MB.");
+        }
+
+        try {
+            byte[] bytes = file.getBytes();
+
+            boolean jpeg = bytes.length >= 3
+                    && (bytes[0] & 0xFF) == 0xFF
+                    && (bytes[1] & 0xFF) == 0xD8
+                    && (bytes[2] & 0xFF) == 0xFF;
+
+            boolean png = bytes.length >= 8
+                    && (bytes[0] & 0xFF) == 0x89
+                    && bytes[1] == 0x50
+                    && bytes[2] == 0x4E
+                    && bytes[3] == 0x47
+                    && bytes[4] == 0x0D
+                    && bytes[5] == 0x0A
+                    && bytes[6] == 0x1A
+                    && bytes[7] == 0x0A;
+
+            boolean webp = bytes.length >= 12
+                    && bytes[0] == 'R'
+                    && bytes[1] == 'I'
+                    && bytes[2] == 'F'
+                    && bytes[3] == 'F'
+                    && bytes[8] == 'W'
+                    && bytes[9] == 'E'
+                    && bytes[10] == 'B'
+                    && bytes[11] == 'P';
+
+            if (!jpeg && !png && !webp) {
+                throw ApiException.badRequest(
+                        "Only JPEG, PNG and WebP images are allowed."
+                );
+            }
+
+        } catch (IOException e) {
+            throw ApiException.badRequest("Cannot read image file.");
+        }
+    }
 
 
     public List<ProductImageResponse> getProductImages(Long productId) {
@@ -62,6 +189,8 @@ public class ProductImageService {
                 .toList();
     }
 
+
+
     public ProductImageResponse uploadImage(
             Long productId,
             Long sellerId,
@@ -96,22 +225,7 @@ public class ProductImageService {
             );
         }
 
-        Map<?, ?> result;
-
-        try {
-            result = cloudinary.uploader().upload(
-                    file.getBytes(),
-                    ObjectUtils.asMap(
-                            "folder", "marketplace/products/" + productId,
-                            "resource_type", "image"
-                    )
-            );
-        } catch (IOException e) {
-            throw new ApiException(
-                    org.springframework.http.HttpStatus.BAD_GATEWAY,
-                    "Image upload failed."
-            );
-        }
+        Map<?, ?> result = uploadToCloudinary(productId, file);
 
         String imageUrl = (String) result.get("secure_url");
         String publicId = (String) result.get("public_id");
@@ -120,9 +234,11 @@ public class ProductImageService {
             return transactionTemplate.execute(status -> {
 
                 Product currentProduct = productRepository
-                        .findByProductIdAndDeletedFalse(productId)
+                        .findByIdForUpdate(productId)
                         .orElseThrow(() ->
-                                ApiException.notFound("Product not found."));
+                                ApiException.notFound("Product not found.")
+                        );
+
 
                 if (!currentProduct.getSellerId().equals(sellerId)) {
                     throw ApiException.forbidden(
@@ -131,9 +247,13 @@ public class ProductImageService {
                 }
 
                 List<ProductImage> images = productImageRepository
-                        .findByProduct_ProductIdOrderBySortOrderAscImageIdAsc(
-                                productId
-                        );
+                        .findByProduct_ProductIdOrderBySortOrderAscImageIdAsc(productId);
+
+                if (images.size() >= MAX_IMAGES) {
+                    throw ApiException.badRequest(
+                            "Maximum 8 images per product."
+                    );
+                }
 
                 int nextOrder = images.isEmpty()
                         ? 0
@@ -176,8 +296,13 @@ public class ProductImageService {
                             ObjectUtils.asMap("resource_type", "image")
                     );
                 } catch (Exception cleanupError) {
-                    // Log cleanup failure in production.
+                    log.error(
+                            "Failed to clean up Cloudinary image: {}",
+                            publicId,
+                            cleanupError
+                    );
                 }
+
             }
 
             throw e;
@@ -191,7 +316,7 @@ public class ProductImageService {
             Long sellerId
     ) {
         Product product = productRepository
-                .findByProductIdAndDeletedFalse(productId)
+                .findByIdForUpdate(productId)
                 .orElseThrow(() ->
                         ApiException.notFound("Product not found.")
                 );
@@ -228,15 +353,16 @@ public class ProductImageService {
         return response;
     }
 
+
     public void deleteImage(
             Long productId,
             Long imageId,
             Long sellerId
     ) {
-        String publicId = transactionTemplate.execute(status -> {
+        transactionTemplate.executeWithoutResult(status -> {
 
             Product product = productRepository
-                    .findByProductIdAndDeletedFalse(productId)
+                    .findByIdForUpdate(productId)
                     .orElseThrow(() ->
                             ApiException.notFound("Product not found.")
                     );
@@ -254,7 +380,6 @@ public class ProductImageService {
                     );
 
             if (Boolean.TRUE.equals(image.getThumbnail())) {
-
                 productImageRepository
                         .findByProduct_ProductIdOrderBySortOrderAscImageIdAsc(
                                 productId
@@ -265,39 +390,30 @@ public class ProductImageService {
                         .ifPresent(i -> i.setThumbnail(true));
             }
 
+            String publicId = image.getCloudinaryPublicId();
+
             productImageRepository.delete(image);
 
-            return image.getCloudinaryPublicId();
-        });
+            if (publicId != null && !publicId.isBlank()) {
+                CloudinaryCleanupTask task =
+                        cleanupTaskRepository.findByPublicId(publicId)
+                                .orElseGet(CloudinaryCleanupTask::new);
 
-        if (publicId == null || publicId.isBlank()) {
-            log.warn("Image {} has no Cloudinary public ID", imageId);
-            return;
-        }
+                if (task.getTaskId() == null
+                        || !"COMPLETED".equals(task.getStatus())) {
 
-        try {
-            Map<?, ?> result = cloudinary.uploader().destroy(
-                    publicId,
-                    ObjectUtils.asMap("resource_type", "image")
-            );
+                    task.setPublicId(publicId);
+                    task.setStatus("PENDING");
+                    task.setRetryCount(0);
+                    task.setMaxRetries(5);
+                    task.setNextRetryAt(LocalDateTime.now());
+                    task.setLastError(null);
 
-            Object state = result.get("result");
-
-            if (!"ok".equals(state) && !"not found".equals(state)) {
-                log.warn(
-                        "Cloudinary delete returned {} for image {}",
-                        state,
-                        imageId
-                );
+                    cleanupTaskRepository.save(task);
+                }
             }
-
-        } catch (Exception e) {
-            log.error(
-                    "Failed to delete Cloudinary image: {}",
-                    publicId,
-                    e
-            );
-        }
+        });
     }
+
 
 }

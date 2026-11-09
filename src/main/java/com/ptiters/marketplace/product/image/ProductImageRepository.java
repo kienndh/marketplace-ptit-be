@@ -1,8 +1,9 @@
 
-package com.ptiters.marketplace.product;
+package com.ptiters.marketplace.product.image;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,12 @@ public interface ProductImageRepository
     List<ProductImage> findByProduct_ProductIdOrderBySortOrderAscImageIdAsc(
             Long productId
     );
+
+
+    List<ProductImage> findByProduct_ProductIdInAndThumbnailTrue(
+            Collection<Long> productIds
+    );
+
 
     Optional<ProductImage> findByImageIdAndProduct_ProductId(
             Long imageId,

@@ -31,6 +31,28 @@ public class ProductSpecification {
                 var predicates = new ArrayList<Predicate>();
 
 
+                if (form.getKeyword() != null
+                        && !form.getKeyword().isBlank()) {
+
+                    String keyword = form.getKeyword()
+                            .trim()
+                            .toLowerCase();
+
+                    keyword = keyword
+                            .replace("\\", "\\\\")
+                            .replace("%", "\\%")
+                            .replace("_", "\\_");
+
+                    predicates.add(
+                            builder.like(
+                                    builder.lower(root.get("title")),
+                                    "%" + keyword + "%",
+                                    '\\'
+                            )
+                    );
+                }
+
+
                 Root<User> userRoot = query.from(User.class);
 
                 predicates.add(

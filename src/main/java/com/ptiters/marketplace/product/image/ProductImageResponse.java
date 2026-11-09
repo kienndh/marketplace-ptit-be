@@ -1,5 +1,5 @@
 
-package com.ptiters.marketplace.product;
+package com.ptiters.marketplace.product.image;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;

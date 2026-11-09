@@ -3,6 +3,7 @@ package com.ptiters.marketplace.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -25,4 +26,8 @@ public class ProductFilterForm {
 
     @JsonProperty("listing_type")
     private String listingType;
+
+    @Size(max = 100, message = "Keyword must not exceed 100 characters")
+    private String keyword;
+
 }

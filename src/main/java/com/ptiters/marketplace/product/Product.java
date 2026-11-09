@@ -1,6 +1,7 @@
 
 package com.ptiters.marketplace.product;
 
+import com.ptiters.marketplace.product.image.ProductImage;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

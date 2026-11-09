@@ -2,6 +2,7 @@
 package com.ptiters.marketplace.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ptiters.marketplace.product.image.ProductImageResponse;
 import lombok.Getter;
 import lombok.Setter;
 

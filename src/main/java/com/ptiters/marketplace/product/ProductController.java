@@ -1,6 +1,8 @@
 
 package com.ptiters.marketplace.product;
 
+import com.ptiters.marketplace.product.image.ProductImageResponse;
+import com.ptiters.marketplace.product.image.ProductImageService;
 import com.ptiters.marketplace.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
