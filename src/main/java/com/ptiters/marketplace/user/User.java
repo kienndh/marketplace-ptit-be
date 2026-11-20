@@ -8,6 +8,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -20,6 +22,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
+    @Column(name = "public_id", nullable = false, unique = true)
+    private UUID publicId;
+
     @Column(name = "email", nullable = false, length = 150, unique = true)
     private String email;
 
@@ -28,6 +33,13 @@ public class User {
 
     @Column(name = "phone", nullable = true, length = 20)
     private String phone;
+
+    @Column(name = "show_phone_publicly", nullable = false)
+    private boolean showPhonePublicly = false;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "social_links", columnDefinition = "json")
+    private List<SocialLink> socialLinks;
 
     @Column(name = "avatar_url", nullable = true, length = 500)
     private String avatarUrl;
@@ -56,8 +68,8 @@ public class User {
     private UserRole role = UserRole.STUDENT;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "status", nullable = false, length = 10)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "user_status")
     private UserStatus status = UserStatus.ACTIVE;
 
     @Column(name = "last_active_at")
@@ -68,4 +80,11 @@ public class User {
 
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.publicId == null) {
+            this.publicId = UUID.randomUUID();
+        }
+    }
 }

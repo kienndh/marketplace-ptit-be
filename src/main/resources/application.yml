@@ -2,7 +2,7 @@ spring:
   application:
     name: marketplace
   datasource:
-    url: jdbc:mysql://localhost:3307/${DB_NAME}?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
   jpa:
@@ -13,4 +13,4 @@ spring:
         jdbc:
           time_zone: UTC
   flyway:
-    enabled: true
+    enabled: false
