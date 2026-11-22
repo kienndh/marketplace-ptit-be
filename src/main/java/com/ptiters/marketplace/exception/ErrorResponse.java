@@ -20,7 +20,7 @@ public class ErrorResponse {
     public ErrorResponse(String detail) {
         this.detail = detail;
         this.errors = null;
-        this.timestamp = LocalDateTime.now();
+        this.timestamp = null;
     }
 
     public ErrorResponse(String detail, Map<String, String> errors) {

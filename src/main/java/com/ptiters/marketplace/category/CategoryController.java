@@ -22,8 +22,8 @@ public class CategoryController {
         return categoryService.listActive();
     }
 
-    @GetMapping("/{categoryid}")
-    public CategoryResponse get(@PathVariable(name = "categoryid") Integer categoryId){
+    @GetMapping("/{category_id}")
+    public CategoryResponse get(@PathVariable(name = "category_id") Integer categoryId){
         return categoryService.getActive(categoryId);
     }
 
