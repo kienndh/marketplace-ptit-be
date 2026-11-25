@@ -947,3 +947,6 @@
 - Chạy kịch bản tự động `scripts/e2e/*.mjs` (3 tài khoản Firebase DEV `chopiters-5739b`, DB `marketplace_java_e2e`, Redis + worker bật) cho hồ sơ, sản phẩm, đơn hàng, đấu giá, chat, report, feedback, community moment, daily need; kiểm kiểu theo `types.ts` của FE (FE chỉ có zod cho request).
 - Sửa Java: DTO admin product approvals khớp Python/FE; `POST /products/{id}/images/upload` từ stub thành upload thật qua `MediaStorage` (+ DRAFT lại tin, chặn khi có đấu giá); lưu trữ media cục bộ chỉ cho profile `e2e`.
 - Kết quả: `clean test` 322/322 PASS. Chi tiết, lỗi còn lại và cách chạy lại: `docs/E2E_FE_SMOKE.md`.
+
+## [2026-11-25] Khớp URL ảnh sản phẩm với Python
+- `ProductService.thumbUrl/detailUrl`: `thumbnail_url` 200px, `detail_url` 800px theo `build_transformed_url` (áp dụng list, seller, admin approvals, detail, favorites). Test mới trong `ProductControllerIntegrationTest`. `clean test` 323/323 PASS.

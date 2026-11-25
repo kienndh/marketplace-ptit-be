@@ -522,4 +522,33 @@ class ProductControllerIntegrationTest {
         Product reloaded = productRepository.findById(p.getProductId()).orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals(ProductApprovalStatus.DRAFT, reloaded.getApprovalStatus());
     }
+
+    @Test
+    @DisplayName("URL ảnh Cloudinary được biến đổi như Python: thumbnail 200px (list/favorites), detail_url 800px, image_url giữ gốc")
+    void testImageUrlsAreTransformedLikePython() throws Exception {
+        Product p = ProductTestFixtures.createProduct(productRepository, seller, category, "Sách ảnh Cloudinary", new BigDecimal("50000"), ProductStatus.AVAILABLE, ProductApprovalStatus.APPROVED);
+        String raw = "https://res.cloudinary.com/demo/image/upload/v1/products/1/a.jpg";
+        productImageRepository.save(ProductImage.builder().product(p).imageUrl(raw).sortOrder((short) 0).isThumbnail(true).build());
+
+        mockMvc.perform(get("/api/v1/products"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].thumbnail_url").value("https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_200/products/1/a.jpg"));
+
+        mockMvc.perform(get("/api/v1/products/" + p.getProductId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.images[0].image_url").value(raw))
+                .andExpect(jsonPath("$.images[0].detail_url").value("https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_800/products/1/a.jpg"));
+
+        String buyerToken = ProductTestFixtures.createToken("buyer_prod_uid", buyer.getEmail());
+        mockMvc.perform(post("/api/v1/favorites/" + p.getProductId()).header(HttpHeaders.AUTHORIZATION, "Bearer " + buyerToken))
+                .andExpect(status().is2xxSuccessful());
+        mockMvc.perform(get("/api/v1/favorites").header(HttpHeaders.AUTHORIZATION, "Bearer " + buyerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].thumbnail_url").value("https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_200/products/1/a.jpg"));
+
+        // Regex giống hệt Python: đoạn "v1/" bị coi là transform cũ và được thay (bug-compatible)
+        // URL không phải Cloudinary giữ nguyên (khớp Python)
+        org.junit.jupiter.api.Assertions.assertEquals("https://cloud/1.jpg", ProductService.thumbUrl("https://cloud/1.jpg"));
+        org.junit.jupiter.api.Assertions.assertEquals("https://cloud/1.jpg", ProductService.detailUrl("https://cloud/1.jpg"));
+    }
 }

@@ -4,7 +4,7 @@
 > FE (`../student-marketplace-fe`) **không bị sửa**, chỉ cấu hình bằng biến môi trường lúc chạy.
 
 ## 1. Kết quả tổng quát
-Kịch bản tự động (`scripts/e2e/*.mjs`) gọi thẳng Java bằng ID token Firebase DEV của 3 tài khoản (seller/buyer/admin), kiểm status + kiểu dữ liệu theo `types.ts` của FE, kèm WebSocket thật. Tổng cộng **~156 bước, 1 bước lệch phía FE, 0 lỗi Java còn lại** (xem bảng).
+Kịch bản tự động (`scripts/e2e/*.mjs`) gọi thẳng Java bằng ID token Firebase DEV của 3 tài khoản (seller/buyer/admin), kiểm status + kiểu dữ liệu theo `types.ts` của FE, kèm WebSocket thật. Tổng cộng **~156 bước, 1 bước lệch phía FE, 0 lỗi Java còn lại**; `clean test` 323/323 (xem bảng).
 
 > **Lưu ý về schema zod**: FE chỉ có zod cho **form request** (`products/users/orders/schemas.ts`), không có schema response. Vì vậy bước "parse response" được thay bằng bộ kiểm kiểu tự viết đọc trực tiếp `src/features/*/types.ts` của FE (`scripts/e2e/lib.mjs`, `checkType`): kiểm trường bắt buộc, kiểu nguyên thủy, union/literal, mảng, interface lồng nhau.
 
@@ -39,11 +39,13 @@ Kịch bản tự động (`scripts/e2e/*.mjs`) gọi thẳng Java bằng ID tok
 2. **`POST /products/{id}/images/upload` là stub**: không lưu file, sinh URL Cloudinary giả `res.cloudinary.com/synthetic/...`. Đã cài đúng hành vi Python: kiểm tra ảnh (`MediaValidator`), chặn khi sản phẩm đang có phiên đấu giá (400), tối đa 10 ảnh, lưu qua `MediaStorage.uploadProductImage`, `sort_order = max+1`, ảnh đầu là thumbnail, ADMIN cũng được tải, **sửa ảnh làm tin APPROVED/PENDING/REJECTED quay về DRAFT**, huỷ asset nếu lưu DB lỗi, `detail_url` qua `MediaStorage.detailImageUrl`. Thêm `AuctionRepository.existsByProductIdAndStatusIn`, `ProductImageRepository.findMaxSortOrder`. Test: `ProductControllerIntegrationTest.testUploadProductImage_StoresViaMediaStorageAndInvalidatesApproval`.
 3. **Chỉ profile `e2e`** (không ảnh hưởng prod): `E2eLocalMediaConfiguration` lưu tệp vào `%TEMP%\marketplace-e2e-media` và phục vụ qua `/e2e-media/**` (tự đoán Content-Type theo chữ ký vì tệp không có đuôi); `LocalMediaStorage` nhận `baseUrl` tuỳ chọn; `ReportEvidenceStreamer.trustLocalPrefixForE2e` cho phép tải đính kèm chat/evidence từ origin cục bộ đó (chặn SSRF vẫn giữ nguyên cho mọi URL khác).
 
+4. **URL ảnh sản phẩm khớp Python** (đã sửa sau vòng 1): `thumbnail_url` (200px: list, seller list, admin approvals, favorites) và `detail_url` (800px: detail, admin detail) đi qua cùng regex/biến đổi `f_auto,q_auto,w_N` như `build_transformed_url` của Python; `image_url` giữ gốc; URL không phải Cloudinary giữ nguyên. Các URL ảnh khác Python có resize (community moment hero 1600/thumbnail 200/detail 800, evidence report 400) đã đúng từ trước; đơn hàng/chat/đấu giá Python không resize nên Java cũng không. Lưu ý bug-compatible: regex Python coi đoạn `v1/` là transform cũ nên bị thay (`.../upload/v1/x.jpg` → `.../upload/f_auto,q_auto,w_200/x.jpg`). Test: `ProductControllerIntegrationTest.testImageUrlsAreTransformedLikePython`.
+5. **Lỗi từ lần bấm UI của bạn**: chưa có lỗi nào được báo; log Java của phiên e2e chỉ có 1 cảnh báo `open-in-view` (mặc định Spring), 0 `ERROR`.
+
 ## 4. Lỗi/lệch còn lại (theo ưu tiên)
 | Ưu tiên | Mô tả | Phía |
 |---|---|---|
 | P2 | `SharedAttachmentItem.conversation_id` được FE khai báo bắt buộc nhưng **Python cũng không trả** (`SharedAttachmentItemResponse` không có). Java khớp Python. FE nên bỏ/đổi thành optional hoặc backend (cả hai) thêm trường. | FE |
-| P2 | Ảnh sản phẩm: Python trả `thumbnail_url` đã biến đổi 200px và `detail_url` 800px qua Cloudinary; Java `formatProduct*` vẫn trả URL gốc cho cả hai (chỉ ảnh upload mới của e2e/local nên chưa lộ). Cần chuyển sang `MediaStorage.MediaUrls.buildTransformedUrl` khi chạy Cloudinary thật. | Java (chưa sửa, cần test riêng) |
 | P3 | Bộ kiểm kiểu chỉ kiểm 3 phần tử đầu mỗi mảng và chỉ khi danh sách có dữ liệu; vài endpoint chưa có dữ liệu mẫu (tutorials có video, support-claims/contributions, admin ban/unban, `from-order` nhóm, đổi chủ nhóm…) chưa chạy. | Phạm vi test |
 | P3 | Cổng 8080 trên máy này bị `AgentService.exe` chiếm → Java chạy ở **8081**; `VITE_API_BASE_URL` phải trỏ 8081. | Môi trường |
 | P3 | Rate limiting HTTP, Cloudinary/FCM thật, tỉ lệ video 9:16 vẫn là nợ cũ (xem `PROJECT_STATE.md` mục 9). | Java |

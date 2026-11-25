@@ -5,6 +5,7 @@ import com.ptiters.marketplace.category.CategoryRepository;
 import com.ptiters.marketplace.category.CategorySummary;
 import com.ptiters.marketplace.exception.ApiException;
 import com.ptiters.marketplace.integration.CloudinaryStorageService;
+import com.ptiters.marketplace.integration.MediaStorage;
 import com.ptiters.marketplace.user.CapabilityService;
 import com.ptiters.marketplace.user.User;
 import com.ptiters.marketplace.user.UserRole;
@@ -79,16 +80,27 @@ public class ProductService {
         }
     }
 
+    /** Python {@code get_thumbnail_url}: 200px f_auto,q_auto (URL không phải Cloudinary giữ nguyên). */
+    public static String thumbUrl(String imageUrl) {
+        return imageUrl == null || imageUrl.isEmpty() ? null : MediaStorage.MediaUrls.buildTransformedUrl(imageUrl, 200);
+    }
+
+    /** Python {@code get_detail_image_url(...) or image_url}: 800px. */
+    public static String detailUrl(String imageUrl) {
+        String d = imageUrl == null || imageUrl.isEmpty() ? null : MediaStorage.MediaUrls.buildTransformedUrl(imageUrl, 800);
+        return d == null || d.isEmpty() ? imageUrl : d;
+    }
+
     public static String resolveThumbnailUrl(List<ProductImage> images) {
         if (images == null || images.isEmpty()) {
             return null;
         }
         for (ProductImage img : images) {
             if (Boolean.TRUE.equals(img.getIsThumbnail())) {
-                return img.getImageUrl();
+                return thumbUrl(img.getImageUrl());
             }
         }
-        return images.get(0).getImageUrl();
+        return thumbUrl(images.get(0).getImageUrl());
     }
 
     public static ProductSummaryResponse formatProductSummary(Product p) {
@@ -134,7 +146,7 @@ public class ProductService {
                         img.getImageId(),
                         p.getProductId(),
                         img.getImageUrl(),
-                        img.getImageUrl(),
+                        detailUrl(img.getImageUrl()),
                         img.getSortOrder(),
                         img.getIsThumbnail()
                 ));
@@ -230,7 +242,7 @@ public class ProductService {
                         img.getImageId(),
                         p.getProductId(),
                         img.getImageUrl(),
-                        img.getImageUrl(),
+                        detailUrl(img.getImageUrl()),
                         img.getSortOrder(),
                         img.getIsThumbnail()
                 ));
