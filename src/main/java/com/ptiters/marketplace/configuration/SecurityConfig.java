@@ -62,6 +62,13 @@ public class SecurityConfig {
                 // <<< TRACK B
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK C (review, report, admin users)
+                // Đánh giá công khai của người bán (không cần token) — phải đứng TRƯỚC catch-all /api/v1/users/**
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/{publicId:[0-9a-fA-F]+-[0-9a-fA-F]+-[0-9a-fA-F]+-[0-9a-fA-F]+-[0-9a-fA-F]+}/reviews").permitAll()
+                // Review theo đơn, báo cáo vi phạm, quản trị báo cáo / người dùng: bắt buộc đăng nhập (kiểm tra ADMIN ở service/controller)
+                .requestMatchers("/api/v1/orders/{orderId:[0-9]+}/review").authenticated()
+                .requestMatchers("/api/v1/reports", "/api/v1/reports/**").authenticated()
+                .requestMatchers("/api/v1/admin/reports", "/api/v1/admin/reports/**").authenticated()
+                .requestMatchers("/api/v1/admin/users", "/api/v1/admin/users/**").authenticated()
                 // <<< TRACK C
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK D1 (notification, feedback)

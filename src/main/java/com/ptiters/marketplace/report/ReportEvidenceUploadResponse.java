@@ -1,8 +1,11 @@
 package com.ptiters.marketplace.report;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ptiters.marketplace.report.ReportSummaries.ReportEvidenceMetadata;
+
+import java.util.List;
 
 public record ReportEvidenceUploadResponse(
-    @JsonProperty("attachment_id") Long attachmentId,
-    @JsonProperty("file_url") String fileUrl
+        @JsonProperty("report_id") Long reportId,
+        List<ReportEvidenceMetadata> attachments
 ) {}

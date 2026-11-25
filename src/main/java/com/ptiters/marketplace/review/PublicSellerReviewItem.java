@@ -3,11 +3,11 @@ package com.ptiters.marketplace.review;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
+/** Ẩn danh tuyệt đối (API_CONTRACT 8.4): không có tên/avatar/id người mua, không order_id. */
 public record PublicSellerReviewItem(
-        @JsonProperty("review_id") Long reviewId,
-        @JsonProperty("reviewer_name") String reviewerName,
-        @JsonProperty("reviewer_avatar") String reviewerAvatar,
         Integer rating,
         String comment,
-        @JsonProperty("created_at") LocalDateTime createdAt
+        @JsonProperty("verified_transaction") boolean verifiedTransaction,
+        @JsonProperty("created_at") LocalDateTime createdAt,
+        @JsonProperty("updated_at") LocalDateTime updatedAt
 ) {}
