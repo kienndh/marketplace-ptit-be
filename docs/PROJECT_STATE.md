@@ -6,18 +6,13 @@
 ---
 
 ## 1. Current Phase (Giai đoạn hiện tại)
-**Phase 4: Product & Favorite Module Migration (Di trú Module Sản phẩm & Yêu thích)** — *Hoàn thành 100%*.
-- **Cột mốc hoàn thành**:
-  - Task PR03-A (Firebase Auth & User Identity Architecture Audit)
-  - Task PR03-B (Spring Security Foundation & Firebase ID Token Verification)
-  - Task PR03-B.1 (Security Hardening & Authorization Boundary Review)
-  - Task PR03-C (User Identity Resolution & Safe JIT Provisioning)
-  - Task PR03-D1 (Current User & Access Status API Parity: `/users/me`, `/users/me/access-status`)
-  - Task PR03-E (Secure Local React Auth Integration & Isolated E2E Setup)
-  - Task ARCH-SKELETON (Toàn bộ Skeleton Architecture & Package Generation cho 15 domain modules hoàn thành 100%, 119/119 tests PASS)
-  - Task PR03-D2 (Remaining User Profile & Bank APIs Parity: `/users/me`, `/users/banks`, `/users/{public_id}`, `/users/{public_id}/sold-products`, `/users/me/bank-account`)
-  - Task PR04 (Product & Favorite Full Business Logic, PostgreSQL Integration, 24h View Deduplication Counter, Keyset Cursor Pagination & 34 New Integration Tests - 153/153 tests PASS)
-- **Cột mốc tiếp theo**: **Phase 5: Order & Auction Migration** (Hoặc Review Checkpoint bàn giao Phase 4).
+**Wave 0 — Nền tảng dùng chung cho 6 track song song** — *Hoàn thành* (trên nền Phase 4: Product & Favorite, đã hoàn thành 100%).
+- **Cột mốc hoàn thành**: PR01 → PR04 (Category, User/Auth, Product, Favorite — xem `PROJECT_HISTORY.md`) và **Wave 0**:
+  - 26 entity + repository JPA cho toàn bộ bảng còn lại (order, auction, review, report, conversation, notification, feedback, communitymoment, tutorial, dailyneed, worker), ánh xạ khớp 100% schema Alembic; enum skeleton sai đã được sửa theo Python.
+  - Hạ tầng dùng chung (interface + bản mặc định an toàn): `NotificationWriter`, `PushNotificationSender`, `UserEventPublisher`, `AuctionEventPublisher`, `PresenceService`, `MediaStorage`, `MediaValidator`, `WorkerRetryExecutor`.
+  - `pom.xml` thêm WebSocket, Data Redis, Cloudinary SDK, Firebase Admin SDK; `SecurityConfig` có 6 khối track; `docs/PARALLEL_PLAN.md`, `docs/pr-reports/README.md`.
+  - 6 worktree + 6 DB test bản sao (`marketplace_java_test_a` … `_e`) — xem `docs/PARALLEL_PLAN.md`.
+- **Cột mốc tiếp theo**: 6 track song song A–E (order+auction / conversation / review+report+admin / notification+feedback / community moment+tutorial+daily need / realtime+infra), sau đó merge và Phase tích hợp.
 
 ---
 
@@ -149,41 +144,39 @@
 
 ## 8. Verification Baseline (Đường cơ sở kiểm thử)
 - **Biên dịch**: `./mvnw.cmd clean compile` -> `BUILD SUCCESS`.
-- **Kiểm thử**: `./mvnw.cmd test` -> `BUILD SUCCESS` (**119 tests PASS**, 0 failures, 0 errors, 0 skipped).
-  - 1 Context Load test (`MarketplaceApplicationTests`)
-  - 3 Read-only tests trên `marketplace_java_dev` (`UserReadOnlyRepositoryTest`)
-  - 4 Write tests trên `marketplace_java_test` (`UserWriteIntegrationTest`)
-  - 4 Write/Read tests trên `marketplace_java_test` (`CategoryWriteIntegrationTest`)
-  - 9 HTTP integration tests trên `marketplace_java_test` (`CategoryControllerIntegrationTest`)
-  - 19 Unit tests kiểm thực JWT Firebase offline (`FirebaseJwtValidatorTest`)
-  - 23 Security HTTP integration tests trên `marketplace_java_test` (`SecurityIntegrationTest`)
-  - 18 User Identity Resolution Integration tests (`UserIdentityResolutionIntegrationTest`)
-  - 38 User Controller HTTP Integration tests (`UserControllerIntegrationTest`)
-- **Tình trạng CSDL sau kiểm thử**:
-  - `marketplace_java_test`: 0 users, 0 categories (rollback sạch 100%).
-  - `marketplace_java_dev`: 286 users, 26 categories (alembic: `b8c9d0e1f2a3`, nguyên vẹn).
-  - `student_marketplace`: 286 users, 26 categories (alembic: `b8c9d0e1f2a3`, nguyên vẹn).
+- **Kiểm thử**: `./mvnw.cmd clean test` -> `BUILD SUCCESS` (**171 tests PASS**, 0 failures, 0 errors, 0 skipped) = 153 test cũ + 18 test Wave 0:
+  - `MediaValidatorTest` (7), `WorkerRetryExecutorTest` (5), `NotificationWriterIntegrationTest` (3, ghi thật vào PostgreSQL rồi dọn sạch), `Wave0EntityMappingIntegrationTest` (2: HQL cho 33 entity + round-trip Order/Items/History với native enum `payment_status_t`), `DevSchemaReadOnlyValidationTest` (1: context profile mặc định trỏ `marketplace_java_dev`, chỉ SELECT).
+  - Context load với `ddl-auto: validate` là phép kiểm tra mapping của toàn bộ entity mới (trên cả `_test` lẫn `_dev`).
+- **Cách build trên máy hiện tại** (chỉ có JDK 17 mặc định và JDK 26): xem `docs/PARALLEL_PLAN.md` mục 7 (`JDK_JAVAC_OPTIONS=-proc:full`, `-Dmaven.compiler.fork=true`, `-Dlombok.version=1.18.46`). Có JDK 21 thì không cần.
+- **Tình trạng CSDL sau kiểm thử** (môi trường Docker `sm_postgres` PostgreSQL 15, `sm_redis` Redis 7 được **dựng lại** ngày 2026-11-25 vì container/volume cũ đã mất):
+  - `marketplace_java_test`: 0 dòng ở mọi bảng (Alembic `c9d0e1f2a3b4`); 6 bản sao `_a`, `_b`, `_c`, `_d1`, `_d2`, `_e` tạo bằng `TEMPLATE`.
+  - `marketplace_java_dev`: schema Alembic `b8c9d0e1f2a3` (thiếu `user_device_tokens`) + **10 category seed + 3 user tổng hợp** — KHÔNG còn 286 users / 26 categories của bản chụp cũ (không khôi phục được; theo quyết định của người dùng chỉ dựng schema + seed).
+  - `student_marketplace`: DB rỗng chưa migrate (nguồn dữ liệu Python tham chiếu cũ đã mất).
 
 ---
 
 ## 9. Known Risks & Technical Debt (Rủi ro & nợ kỹ thuật)
 1. **Lệch revision Alembic & Cơ chế Deploy VPS Production (P1)**:
-   - `marketplace_java_dev` ở `b8c9d0e1f2a3` (thiếu `user_device_tokens`).
+   - `marketplace_java_dev` ở `b8c9d0e1f2a3` (thiếu `user_device_tokens`) → `UserDeviceToken` chưa gắn `@Entity` (xem `PARALLEL_PLAN.md` mục 6).
    - CSDL và Backend Production hiện tại đang chạy trên VPS của giảng viên (trước đây là Railway), trạng thái revision Alembic thực tế và cơ chế tự động deploy đều là **UNVERIFIED**. Cần làm việc với quản trị viên/DevOps để xác minh revision và quy trình deploy thủ công/tự động trước khi cutover.
-2. **Quan hệ 1:1 giữa User và UserAuthIdentity (P2)**:
-   - `UserAuthIdentity` đang dùng `@ManyToOne`. Sẽ chuẩn hóa trong module User & Auth khi triển khai JIT provisioning ở PR03-C.
+2. **Quan hệ 1:1 giữa User và UserAuthIdentity (P2)** — *Đã xử lý ở PR03-C* (JIT provisioning an toàn đa luồng).
 3. **Giới hạn kiểm tra thu hồi Token (Revocation Checking) (P2)**:
    - Xác thực JWT cục bộ bằng JWKS không gọi Google API kiểm tra `check_revoked` trên mỗi request (phù hợp với hiệu năng và cách làm của Python production backend). Chưa có phê duyệt kiến trúc cho Redis blacklist.
-4. **Phân quyền vai trò và trạng thái tài khoản (P1)**:
-   - Token JWT chỉ chứng minh tính hợp lệ mật mã học của Firebase UID, không đại diện cho vai trò `ADMIN` hay trạng thái `ACTIVE` trong PostgreSQL. Logic phân quyền nghiệp vụ (403 Forbidden) sẽ được hiện thực toàn diện tại PR03-C.
+4. **Phân quyền vai trò và trạng thái tài khoản (P1)** — *Đã xử lý ở PR03-C/PR04*:
+   - Logic phân quyền nghiệp vụ (403 Forbidden, BOLA) đã hiện thực trong `UserService`, `ProductService`, `FavoriteService`; các module mới (6 track) phải tuân thủ cùng quy ước.
 5. **Cấu trúc phản hồi lỗi 422 của Category (P2)**:
    - Đang trả về `{"detail": "Invalid value for request parameter."}` hoặc `{"detail": "Dữ liệu không hợp lệ", "errors": {...}}`. Schema này khác biệt cấu trúc chi tiết với mảng Pydantic của FastAPI nhưng hoàn toàn tương thích với Axios interceptor của React frontend.
 
 ---
 
 ## 10. Next Steps (Các bước tiếp theo)
-1. Báo cáo tổng kết Task PR03-B và dừng lại chờ người dùng phê duyệt ("Proceed").
-2. Chuyển sang **Task PR03-C — User Identity Resolution & JIT Auto-Provisioning**:
-   - Xây dựng logic phân giải danh tính từ Firebase UID / email trong Bearer token.
-   - Hiện thực JIT user provisioning an toàn đa luồng (xử lý race condition trên unique constraints `ux_users_email` và `ux_user_auth_identities_provider_uid`).
-   - Rà soát trạng thái tài khoản `BANNED` / `INACTIVE` trả về HTTP 403 Forbidden.
+1. **Chạy 6 track song song** (mỗi track một phiên Claude Code trong worktree riêng, DB test riêng) theo `docs/PARALLEL_PLAN.md`:
+   - A: `order/`, `auction/`, `worker/OrderAutoCancelWorker` — nhánh `track/A-order-auction`.
+   - B: `conversation/` — `track/B-conversation`.
+   - C: `review/`, `report/`, admin users + search (file mới trong `user/`) — `track/C-review-report-admin`.
+   - D1: `notification/` (trừ `NotificationWriter`), `feedback/` — `track/D1-notification-feedback`.
+   - D2: `communitymoment/`, `tutorial/`, `dailyneed/` — `track/D2-moment-tutorial-dailyneed`.
+   - E: `realtime/`, `integration/`, `worker/MediaCleanup*` (bean thật thay bản mặc định) — `track/E-realtime-infra`.
+2. Mỗi track ghi `docs/pr-reports/TRACK_<ID>.md`, không sửa `pom.xml`, `application*.yml`, `PROJECT_STATE.md`, `PROJECT_HISTORY.md`, entity/interface của Wave 0.
+3. Người điều phối merge các nhánh về `main` (thứ tự gợi ý ở `PARALLEL_PLAN.md` mục 8), chạy toàn bộ suite trên `marketplace_java_test`, rồi cập nhật tài liệu này.
+4. Việc còn treo: nâng `marketplace_java_dev` lên Alembic `c9d0e1f2a3b4` để gắn `@Entity` cho `UserDeviceToken`; quyết định có khôi phục dữ liệu dev (286 users / 26 categories) hay không; gom `product/` về `MediaStorage`.

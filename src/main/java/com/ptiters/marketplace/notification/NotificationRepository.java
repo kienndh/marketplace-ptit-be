@@ -1,15 +1,9 @@
 package com.ptiters.marketplace.notification;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface NotificationRepository {
-    List<Notification> findByUserId(Long userId, int limit, int offset);
-    List<Notification> findUnreadByUserId(Long userId);
-    long countUnreadByUserId(Long userId);
-    Optional<Notification> findById(Long id);
-    void markAllAsRead(Long userId);
-    void markAsRead(Long notificationId, Long userId);
-    void deleteByIdAndUserId(Long notificationId, Long userId);
-    Notification save(Notification notification);
+/**
+ * Repository cơ bản cho Notification. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
 }

@@ -1,11 +1,9 @@
 package com.ptiters.marketplace.report;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ModerationActionRepository {
-    ModerationAction save(ModerationAction action);
-    Optional<ModerationAction> findById(Long id);
-    List<ModerationAction> findByReportId(Long reportId);
-    List<ModerationAction> findByTargetUserId(Long targetUserId);
+/**
+ * Repository cơ bản cho ModerationAction. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface ModerationActionRepository extends JpaRepository<ModerationAction, Long> {
 }

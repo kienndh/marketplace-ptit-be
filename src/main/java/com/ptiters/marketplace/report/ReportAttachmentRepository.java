@@ -1,10 +1,9 @@
 package com.ptiters.marketplace.report;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ReportAttachmentRepository {
-    ReportAttachment save(ReportAttachment attachment);
-    Optional<ReportAttachment> findById(Long id);
-    List<ReportAttachment> findByReportId(Long reportId);
+/**
+ * Repository cơ bản cho ReportAttachment. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface ReportAttachmentRepository extends JpaRepository<ReportAttachment, Long> {
 }

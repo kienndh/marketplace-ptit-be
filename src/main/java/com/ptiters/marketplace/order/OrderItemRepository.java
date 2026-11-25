@@ -1,11 +1,9 @@
 package com.ptiters.marketplace.order;
 
-import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Repository interface for order_items table (PostgreSQL: order_items).
+ * Repository cơ bản cho OrderItem. Track tự thêm query nghiệp vụ trong package của mình.
  */
-public interface OrderItemRepository {
-    List<OrderItem> findByOrderId(Long orderId);
-    OrderItem save(OrderItem item);
+public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 }

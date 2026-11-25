@@ -1,13 +1,9 @@
 package com.ptiters.marketplace.conversation;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Repository interface for messages table (PostgreSQL: messages).
+ * Repository cơ bản cho Message. Track tự thêm query nghiệp vụ trong package của mình.
  */
-public interface MessageRepository {
-    Optional<Message> findById(Long messageId);
-    List<Message> findByConversationId(Long conversationId);
-    Message save(Message message);
+public interface MessageRepository extends JpaRepository<Message, Long> {
 }

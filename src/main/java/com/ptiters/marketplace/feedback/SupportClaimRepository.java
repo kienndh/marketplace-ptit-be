@@ -1,11 +1,9 @@
 package com.ptiters.marketplace.feedback;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SupportClaimRepository {
-    SupportClaim save(SupportClaim claim);
-    Optional<SupportClaim> findById(Long id);
-    List<SupportClaim> findByUserId(Long userId);
-    List<SupportClaim> findByStatus(SupportClaimStatus status);
+/**
+ * Repository cơ bản cho SupportClaim. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface SupportClaimRepository extends JpaRepository<SupportClaim, Long> {
 }

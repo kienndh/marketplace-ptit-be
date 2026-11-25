@@ -1,14 +1,9 @@
 package com.ptiters.marketplace.review;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Repository interface for reviews table (PostgreSQL: reviews).
+ * Repository cơ bản cho Review. Track tự thêm query nghiệp vụ trong package của mình.
  */
-public interface ReviewRepository {
-    Optional<Review> findById(Long reviewId);
-    Optional<Review> findByOrderId(Long orderId);
-    List<Review> findByRevieweeId(Long revieweeId);
-    Review save(Review review);
+public interface ReviewRepository extends JpaRepository<Review, Long> {
 }

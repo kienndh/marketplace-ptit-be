@@ -1,12 +1,9 @@
 package com.ptiters.marketplace.feedback;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SupportContributionRepository {
-    SupportContribution save(SupportContribution contribution);
-    Optional<SupportContribution> findById(Long id);
-    List<SupportContribution> findPublicContributions(int limit, int offset);
-    List<SupportContribution> findAll(int limit, int offset);
-    void deleteById(Long id);
+/**
+ * Repository cơ bản cho SupportContribution. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface SupportContributionRepository extends JpaRepository<SupportContribution, Long> {
 }

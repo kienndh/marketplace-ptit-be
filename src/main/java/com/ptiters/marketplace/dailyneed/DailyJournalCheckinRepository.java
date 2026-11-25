@@ -1,10 +1,9 @@
 package com.ptiters.marketplace.dailyneed;
 
-import java.time.LocalDate;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface DailyJournalCheckinRepository {
-    DailyJournalCheckin save(DailyJournalCheckin checkin);
-    Optional<DailyJournalCheckin> findByUserIdAndCheckinDate(Long userId, LocalDate checkinDate);
-    long countStreakByUserId(Long userId);
+/**
+ * Repository cơ bản cho DailyJournalCheckin. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface DailyJournalCheckinRepository extends JpaRepository<DailyJournalCheckin, Long> {
 }

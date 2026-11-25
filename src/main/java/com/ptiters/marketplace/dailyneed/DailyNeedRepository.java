@@ -1,14 +1,9 @@
 package com.ptiters.marketplace.dailyneed;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface DailyNeedRepository {
-    DailyNeed save(DailyNeed dailyNeed);
-    Optional<DailyNeed> findById(Long id);
-    Optional<DailyNeed> findByUserIdAndNoteDate(Long userId, LocalDate noteDate);
-    List<DailyNeed> findRecent(int limit);
-    List<DailyNeed> findByDate(LocalDate date, int limit);
-    void deleteByUserIdAndNoteDate(Long userId, LocalDate noteDate);
+/**
+ * Repository cơ bản cho DailyNeed. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface DailyNeedRepository extends JpaRepository<DailyNeed, Long> {
 }

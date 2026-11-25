@@ -1,13 +1,9 @@
 package com.ptiters.marketplace.report;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ReportRepository {
-    Report save(Report report);
-    Optional<Report> findById(Long id);
-    List<Report> findAll(int limit, int offset);
-    List<Report> findByTarget(ReportTargetType targetType, Long targetId);
-    List<Report> findByReporterId(Long reporterId);
-    long countByStatus(ReportStatus status);
+/**
+ * Repository cơ bản cho Report. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface ReportRepository extends JpaRepository<Report, Long> {
 }

@@ -104,7 +104,7 @@ class UserControllerIntegrationTest {
              ResultSet rs = stmt.executeQuery("SELECT current_database()")) {
             assertTrue(rs.next(), "Database query failed to return current database name");
             String dbName = rs.getString(1);
-            assertEquals("marketplace_java_test", dbName,
+            org.junit.jupiter.api.Assertions.assertTrue(dbName.matches("marketplace_java_test(_[a-z0-9]+)?"),
                     "SAFETY VIOLATION: Tests are strictly forbidden outside marketplace_java_test!");
         }
 

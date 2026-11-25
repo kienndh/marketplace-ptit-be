@@ -1,8 +1,8 @@
 package com.ptiters.marketplace.report;
 
+/** Giá trị khớp 100% với Python / CHECK constraint trong PostgreSQL. */
 public enum ReportWorkflowState {
-    PENDING_REVIEW,
-    IN_PROGRESS,
-    ACTION_TAKEN,
-    CLOSED
+    OPEN,
+    REVIEWING,
+    COMPLETED
 }

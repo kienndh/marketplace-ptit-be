@@ -1,12 +1,9 @@
 package com.ptiters.marketplace.tutorial;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TutorialRepository {
-    Tutorial save(Tutorial tutorial);
-    Optional<Tutorial> findById(Long id);
-    List<Tutorial> findPublishedByFeatureKey(String featureKey);
-    List<Tutorial> findAll();
-    void deleteById(Long id);
+/**
+ * Repository cơ bản cho Tutorial. Track tự thêm query nghiệp vụ trong package của mình.
+ */
+public interface TutorialRepository extends JpaRepository<Tutorial, Long> {
 }

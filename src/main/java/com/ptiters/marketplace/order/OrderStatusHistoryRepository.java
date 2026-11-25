@@ -1,11 +1,9 @@
 package com.ptiters.marketplace.order;
 
-import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Repository interface for order_status_history table (PostgreSQL: order_status_history).
+ * Repository cơ bản cho OrderStatusHistory. Track tự thêm query nghiệp vụ trong package của mình.
  */
-public interface OrderStatusHistoryRepository {
-    List<OrderStatusHistory> findByOrderId(Long orderId);
-    OrderStatusHistory save(OrderStatusHistory history);
+public interface OrderStatusHistoryRepository extends JpaRepository<OrderStatusHistory, Long> {
 }

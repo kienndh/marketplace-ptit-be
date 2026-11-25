@@ -1,13 +1,9 @@
 package com.ptiters.marketplace.auction;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Repository interface for auction_bids table (PostgreSQL: auction_bids).
+ * Repository cơ bản cho AuctionBid. Track tự thêm query nghiệp vụ trong package của mình.
  */
-public interface AuctionBidRepository {
-    Optional<AuctionBid> findById(Long bidId);
-    List<AuctionBid> findByAuctionId(Long auctionId);
-    AuctionBid save(AuctionBid bid);
+public interface AuctionBidRepository extends JpaRepository<AuctionBid, Long> {
 }

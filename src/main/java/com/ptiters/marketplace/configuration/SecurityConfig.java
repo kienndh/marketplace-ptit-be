@@ -44,6 +44,26 @@ public class SecurityConfig {
                 // 1. Preflight CORS requests are always permitted
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                // ====== PHÂN VÙNG TRACK: mỗi track CHỈ thêm rule trong khối của mình (matcher khớp đầu tiên thắng) ======
+                // >>> TRACK A (order, auction)
+                // <<< TRACK A
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK B (conversation)
+                // <<< TRACK B
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK C (review, report, admin users)
+                // <<< TRACK C
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK D1 (notification, feedback)
+                // <<< TRACK D1
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK D2 (community moment, tutorial, daily need)
+                // <<< TRACK D2
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK E (realtime, websocket)
+                // <<< TRACK E
+                // ------------------------------------------------------------------------------------------
+
                 // 2. Explicitly protect private user routes first (prevent path template collision)
                 .requestMatchers("/api/v1/users/me", "/api/v1/users/me/**", "/api/v1/users/search").authenticated()
 

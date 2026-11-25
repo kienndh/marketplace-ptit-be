@@ -1,18 +1,14 @@
 package com.ptiters.marketplace.notification;
 
+/** Giá trị khớp 100% với Python / CHECK constraint trong PostgreSQL. */
 public enum NotificationType {
-    ORDER_CREATED,
-    ORDER_CONFIRMED,
-    ORDER_CANCELLED,
-    ORDER_COMPLETED,
+    NEW_ORDER,
+    ORDER_STATUS,
+    NEW_MESSAGE,
+    NEW_REVIEW,
+    AUCTION_BID,
     AUCTION_OUTBID,
     AUCTION_WON,
     AUCTION_ENDED,
-    DIRECT_MESSAGE,
-    GROUP_INVITE,
-    MENTION,
-    SYSTEM,
-    ADMIN_WARNING,
-    REPORT_RESULT,
-    FEEDBACK_REPLY
+    SYSTEM
 }

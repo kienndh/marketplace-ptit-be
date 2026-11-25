@@ -887,3 +887,24 @@
 
 ### 4. Kết luận
 - Toàn bộ Phase 4 (`product/` và `favorite/`) đã hoàn thành xuất sắc 100% mục tiêu, đạt chuẩn API contract, tương thích kiến trúc PostgreSQL 15+, và không có bất kỳ regression nào trên toàn bộ 153 bài kiểm thử.
+
+---
+
+## Wave 0 — Nền tảng dùng chung cho 6 track song song (2026-11-25)
+
+### 1. Bối cảnh
+- Sau Phase 4 (153/153 tests PASS), cần chuẩn bị nền tảng để 6 phiên Claude Code làm SONG SONG các module còn lại (order/auction, conversation, review/report/admin, notification/feedback, community moment/tutorial/daily need, realtime/infra) mà không đụng file của nhau.
+- **Sự cố môi trường**: khi bắt đầu, container `sm_postgres`/`sm_redis` và toàn bộ volume dữ liệu (`marketplace_java_dev` 286 users/26 categories, `marketplace_java_test`, `student_marketplace`) KHÔNG còn trên máy. Theo quyết định của người dùng, dựng lại bằng Docker (`postgres:15-alpine`, `redis:7-alpine`) với **schema + seed**: chạy Alembic của dự án Python (chỉ đọc mã nguồn, truyền `DATABASE_URL` trỏ DB local) — `marketplace_java_dev` tới `b8c9d0e1f2a3`, `marketplace_java_test` tới `head` (`c9d0e1f2a3b4`); seed 10 category canonical + 3 user tổng hợp cho dev (để `UserReadOnlyRepositoryTest` có dữ liệu). Không dùng dump production.
+- Máy không có JDK 21; build bằng JDK 26 + `-proc:full` + Lombok 1.18.46 (chỉ qua tham số dòng lệnh, không sửa pom cho việc này).
+
+### 2. Công việc đã thực hiện
+1. **26 entity + repository** (`@Entity`): Order, OrderItem, OrderStatusHistory, Auction, AuctionBid, Review, Report, ReportAttachment, ModerationAction, Conversation, ConversationMember (`@IdClass`), ConversationInvite, Message, MessageAttachment, MessageMention, MessageReaction, Notification, SiteFeedback, SiteFeedbackAttachment, SupportClaim, SupportContribution, CommunityMoment, Tutorial, DailyNeed, DailyJournalCheckin, MediaCleanupJob. `UserDeviceToken` giữ class thường (bảng thiếu ở dev DB). Sửa các enum skeleton sai (AuctionStatus, PaymentStatus, NotificationType, Report*, ModerationActionType, ReactionKey) theo Python/CHECK constraint, thêm enum hội thoại/feedback.
+2. **Hạ tầng dùng chung**: `NotificationWriter` (+`PushNotificationSender`), `UserEventPublisher`, `AuctionEventPublisher`, `PresenceService` (interface), `MediaStorage` (+`LocalMediaStorage` cho profile test, `UnconfiguredMediaStorage`), `MediaValidator` (theo `media_validation.py`), `WorkerRetryExecutor` + `SweepResult` (theo `retry.py`); bean mặc định ở `configuration/SharedInfrastructureDefaultsConfiguration` (`@ConditionalOnMissingBean`).
+3. **pom.xml**: `spring-boot-starter-websocket`, `spring-boot-starter-data-redis`, `cloudinary-http5:2.3.2`, `firebase-admin:9.5.0`.
+4. **Chống xung đột**: 6 khối track trong `SecurityConfig` (ngay sau rule preflight CORS), `docs/PARALLEL_PLAN.md`, `docs/pr-reports/README.md`; nới safety check DB trong test thành `marketplace_java_test(_[a-z0-9]+)?` để mỗi track chạy được toàn suite trên DB riêng.
+5. **Kiểm thử**: thêm 18 test (171/171 PASS).
+
+### 3. Bài học kỹ thuật
+- Không inline enum PostgreSQL native vào HQL (`type "userstatus" does not exist`) — luôn binding tham số.
+- Entity tên `Order` dùng được trong HQL của Hibernate 7.
+- Cột `timestamptz` phải map `OffsetDateTime` (không phải `LocalDateTime`) để `ddl-auto: validate` đạt.
