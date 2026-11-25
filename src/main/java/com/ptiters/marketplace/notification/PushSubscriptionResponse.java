@@ -1,6 +1,3 @@
 package com.ptiters.marketplace.notification;
 
-public record PushSubscriptionResponse(
-    boolean success,
-    String message
-) {}
+public record PushSubscriptionResponse(String status) {}

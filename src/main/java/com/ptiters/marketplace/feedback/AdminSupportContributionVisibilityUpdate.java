@@ -4,5 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 
 public record AdminSupportContributionVisibilityUpdate(
-    @NotNull @JsonProperty("is_public") Boolean isPublic
+        @NotNull(message = "is_public không được để trống.")
+        @JsonProperty("is_public") Boolean isPublic
 ) {}

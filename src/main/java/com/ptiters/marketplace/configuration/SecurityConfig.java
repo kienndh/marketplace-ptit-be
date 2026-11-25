@@ -72,6 +72,12 @@ public class SecurityConfig {
                 // <<< TRACK C
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK D1 (notification, feedback)
+                // <<< TRACK C
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK D1 (notification, feedback)
+                .requestMatchers(HttpMethod.GET, "/api/v1/feedback", "/api/v1/feedback/support", "/api/v1/feedback/support/leaderboard").permitAll()
+                .requestMatchers("/api/v1/feedback", "/api/v1/feedback/**").authenticated()
+                .requestMatchers("/api/v1/notifications", "/api/v1/notifications/**").authenticated()
                 // <<< TRACK D1
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK D2 (community moment, tutorial, daily need)
