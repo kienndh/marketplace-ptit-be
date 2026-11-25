@@ -10,4 +10,6 @@ public interface UserAuthIdentityRepository extends JpaRepository<UserAuthIdenti
     // Lấy luôn user trong cùng một truy vấn, tránh truy vấn thừa
     @EntityGraph(attributePaths = "user")
     Optional<UserAuthIdentity> findByProviderAndProviderUid(String provider, String providerUid);
+
+    Optional<UserAuthIdentity> findByUser_UserId(Long userId);
 }

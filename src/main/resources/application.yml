@@ -2,9 +2,9 @@ spring:
   application:
     name: marketplace
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/marketplace_java_dev}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:dev_password}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -14,3 +14,7 @@ spring:
           time_zone: UTC
   flyway:
     enabled: false
+
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:student-marketplace-ptit}
+  jwk-set-uri: ${FIREBASE_JWK_SET_URI:https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com}

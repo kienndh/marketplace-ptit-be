@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPublicId(UUID publicId);
 
+    Optional<User> findByEmail(String email);
+
     Optional<User> findFirstByStatus(UserStatus status);
 
     @Query("SELECT u FROM User u WHERE u.socialLinks IS NOT NULL")

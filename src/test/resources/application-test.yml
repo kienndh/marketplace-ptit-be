@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${TEST_DB_URL}
-    username: ${TEST_DB_USER}
-    password: ${TEST_DB_PASSWORD}
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/marketplace_java_test}
+    username: ${TEST_DB_USER:postgres}
+    password: ${TEST_DB_PASSWORD:dev_password}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -12,3 +12,7 @@ spring:
           time_zone: UTC
   flyway:
     enabled: false
+
+firebase:
+  project-id: test-marketplace-ptit
+  jwk-set-uri: https://example.com/test-jwks
