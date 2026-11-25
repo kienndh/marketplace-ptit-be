@@ -85,6 +85,14 @@ public class SecurityConfig {
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK E (realtime, websocket)
                 .requestMatchers("/ws/**").permitAll()
+                // <<< TRACK A
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK B (conversation)
+                // Mọi endpoint chat đều yêu cầu đăng nhập (Python: Depends(get_current_user) cho toàn bộ router).
+                .requestMatchers("/api/v1/conversations", "/api/v1/conversations/**").authenticated()
+                // <<< TRACK B
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK C (review, report, admin users)
                 // <<< TRACK C
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK D1 (notification, feedback)
