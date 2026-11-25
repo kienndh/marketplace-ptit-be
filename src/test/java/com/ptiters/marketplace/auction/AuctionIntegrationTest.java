@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /** Đấu giá trên PostgreSQL THẬT: vòng đời, đặt giá tuần tự dưới khoá hàng, đóng phiên, checkout, worker, quyền. */
-@SpringBootTest(properties = "spring.datasource.hikari.maximum-pool-size=4")
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TrackATestConfig.class)

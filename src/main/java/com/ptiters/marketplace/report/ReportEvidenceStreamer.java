@@ -34,7 +34,7 @@ public class ReportEvidenceStreamer {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    static void validateStorageUrlSafety(String targetUrl) {
+    public static void validateStorageUrlSafety(String targetUrl) {
         if (targetUrl == null || targetUrl.isBlank()) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Đường dẫn tệp không tồn tại.");
         }

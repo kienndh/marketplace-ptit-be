@@ -337,6 +337,13 @@ public final class ConversationDtos {
             @JsonProperty("online_user_ids") List<Long> onlineUserIds) {
     }
 
+    /** Python: AttachmentDownloadTicketResponse — ticket mờ, sống 60 giây, dùng 1 lần. */
+    public record AttachmentDownloadTicketResponse(
+            @JsonProperty("ticket") String ticket,
+            @JsonProperty("download_url") String downloadUrl,
+            @JsonProperty("expires_in_seconds") int expiresInSeconds) {
+    }
+
     /** Python: OfficialSupportGroupResponse. */
     public record OfficialSupportGroupResponse(
             @JsonProperty("conversation_id") Long conversationId,

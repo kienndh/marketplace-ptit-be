@@ -5,6 +5,10 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/marketplace_java_dev}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:dev_password}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
   jpa:
     hibernate:
       ddl-auto: validate
@@ -14,6 +18,11 @@ spring:
           time_zone: UTC
   flyway:
     enabled: false
+
+marketplace:
+  chat:
+    # Đọc từ biến môi trường như Python; mặc định 0 = chưa cấu hình → các route official-support trả 503 như Python
+    official-support-group-id: ${OFFICIAL_SUPPORT_GROUP_ID:0}
 
 firebase:
   project-id: ${FIREBASE_PROJECT_ID:student-marketplace-ptit}

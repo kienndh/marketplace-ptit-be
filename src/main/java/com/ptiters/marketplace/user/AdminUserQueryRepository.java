@@ -226,6 +226,6 @@ public class AdminUserQueryRepository {
         if (excludeConversationId != null) {
             typed.setParameter("cid", excludeConversationId);
         }
-        return typed.setMaxResults(Math.min(limit, 20)).getResultList();
+        return typed.setMaxResults(limit).getResultList();
     }
 }

@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,6 +63,42 @@ public class NotificationWriter {
         Notification saved = notificationRepository.saveAndFlush(notification);
         dispatchAfterCommit(saved);
         return saved;
+    }
+
+    /**
+     * Upsert theo kiểu Python (NEW_MESSAGE chat): với (user, type, ref_type, ref_id) đang có một bản CHƯA ĐỌC thì
+     * làm mới {@code title/body/created_at} của bản mới nhất thay vì tạo thêm; chưa có thì tạo mới. Tuần tự hoá bằng
+     * advisory lock theo khoá nghiệp vụ (giống Python {@code pg_advisory_xact_lock}). Realtime/push vẫn được gửi
+     * sau commit trong cả hai nhánh.
+     */
+    public Notification upsertUnread(Long userId, NotificationType type, String title, String body,
+                                     String refType, Long refId) {
+        entityManager.createNativeQuery("select pg_advisory_xact_lock(hashtext(:k))")
+                .setParameter("k", "notif_" + type.name() + ":" + userId + ":" + refType + ":" + refId)
+                .getSingleResult();
+        List<Notification> existing = entityManager.createQuery(
+                        "select n from Notification n where n.userId = :uid and n.type = :type and n.refType = :rt "
+                                + "and n.refId = :rid and n.isRead = false order by n.notificationId desc",
+                        Notification.class)
+                .setParameter("uid", userId).setParameter("type", type)
+                .setParameter("rt", refType).setParameter("rid", refId)
+                .setMaxResults(1)
+                .setLockMode(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+                .getResultList();
+        if (existing.isEmpty()) {
+            return create(userId, type, title, body, refType, refId);
+        }
+        Notification n = existing.get(0);
+        // created_at là updatable=false ở entity → cập nhật bằng native SQL rồi refresh để lấy giá trị mới.
+        entityManager.createNativeQuery(
+                        "update notifications set title = :t, body = :b, created_at = :c where notification_id = :id")
+                .setParameter("t", title).setParameter("b", body)
+                .setParameter("c", LocalDateTime.now(ZoneOffset.UTC))
+                .setParameter("id", n.getNotificationId())
+                .executeUpdate();
+        entityManager.refresh(n);
+        dispatchAfterCommit(n);
+        return n;
     }
 
     /**

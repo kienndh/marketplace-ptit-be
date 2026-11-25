@@ -10,12 +10,15 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Configuration
 @EnableWebSecurity
@@ -59,6 +62,8 @@ public class SecurityConfig {
                 // <<< TRACK A
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK B (conversation)
+                // Tải tệp: xác thực bằng ticket Redis dùng 1 lần HOẶC Bearer (controller tự kiểm tra, trả 401 nếu thiếu cả hai)
+                .requestMatchers(HttpMethod.GET, "/api/v1/conversations/{conversationId:[0-9]+}/attachments/{attachmentId:[0-9]+}/download").permitAll()
                 // Mọi endpoint chat đều yêu cầu đăng nhập (Python: Depends(get_current_user) cho toàn bộ router).
                 .requestMatchers("/api/v1/conversations", "/api/v1/conversations/**").authenticated()
                 // <<< TRACK B
@@ -131,12 +136,32 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
+                .bearerTokenResolver(adminEvidenceBearerTokenResolver())
                 .jwt(Customizer.withDefaults())
                 .authenticationEntryPoint(authenticationEntryPoint)
                 .accessDeniedHandler(accessDeniedHandler)
             );
 
         return http.build();
+    }
+
+    /**
+     * Python {@code get_admin_for_evidence}: riêng route xem bằng chứng report của admin chấp nhận thêm
+     * {@code ?token=} (thẻ video/img HTML5 không gửi được header Authorization). Mọi route khác chỉ nhận header.
+     * Quyền ADMIN vẫn được kiểm tra ở controller ({@code requireAdmin}).
+     */
+    private BearerTokenResolver adminEvidenceBearerTokenResolver() {
+        Pattern evidencePath = Pattern.compile("^/api/v1/admin/reports/\\d+/evidence/\\d+$");
+        DefaultBearerTokenResolver headerResolver = new DefaultBearerTokenResolver();
+        return request -> {
+            if ("GET".equalsIgnoreCase(request.getMethod()) && evidencePath.matcher(request.getRequestURI()).matches()) {
+                String token = request.getParameter("token");
+                if (token != null && !token.isBlank()) {
+                    return token;
+                }
+            }
+            return headerResolver.resolve(request);
+        };
     }
 
     @Bean

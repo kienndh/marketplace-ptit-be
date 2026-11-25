@@ -21,6 +21,7 @@ public class UserService {
     private final UserAuthIdentityRepository userAuthIdentityRepository;
     private final UserProvisioningService userProvisioningService;
     private final UserProfileQueryRepository userProfileQueryRepository;
+    private final UserSearchService userSearchService;
 
     public Optional<User> findByIdentity(String provider, String providerUid) {
         return userAuthIdentityRepository.findByProviderAndProviderUid(provider, providerUid)
@@ -291,7 +292,8 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public List<UserSearchResponse> searchUsers(String query, int limit) {
-        throw new UnsupportedOperationException("TODO: Implement user search");
+    /** Tìm user công khai cho mời nhóm (Python {@code ConversationService.search_users}). */
+    public List<UserSearchResponse> searchUsers(User currentUser, String query, int limit, Long conversationId) {
+        return userSearchService.search(currentUser.getUserId(), query, limit, conversationId);
     }
 }

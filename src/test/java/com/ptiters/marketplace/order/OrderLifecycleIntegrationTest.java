@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /** Vòng đời đơn hàng trên PostgreSQL THẬT (không mock): trạng thái, kho, thông báo, quyền, tranh chấp, worker. */
-@SpringBootTest(properties = "spring.datasource.hikari.maximum-pool-size=4")
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TrackATestConfig.class)

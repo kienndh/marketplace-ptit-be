@@ -28,7 +28,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -47,10 +46,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@TestPropertySource(properties = {
-        "spring.datasource.hikari.maximum-pool-size=3",
-        "spring.datasource.hikari.minimum-idle=1"
-})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class TutorialControllerIntegrationTest {
 

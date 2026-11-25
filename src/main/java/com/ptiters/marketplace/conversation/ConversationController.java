@@ -1,5 +1,6 @@
 package com.ptiters.marketplace.conversation;
 
+import com.ptiters.marketplace.conversation.ConversationDtos.AttachmentDownloadTicketResponse;
 import com.ptiters.marketplace.conversation.ConversationDtos.ConversationCreateRequest;
 import com.ptiters.marketplace.conversation.ConversationDtos.ConversationDetailResponse;
 import com.ptiters.marketplace.conversation.ConversationDtos.ConversationFromOrderRequest;
@@ -57,7 +58,7 @@ import java.util.Map;
 /**
  * API chat — Python: {@code conversations/router.py} (prefix {@code /api/v1/conversations}).
  * Controller chỉ nhận request, validate tham số, gọi Service và trả DTO (không trả Entity).
- * Phần tải tệp qua ticket Redis (download-ticket/download) chưa thuộc phạm vi track này (xem báo cáo).
+ * Tải tệp đính kèm: {@code download-ticket} (Redis, 60s, dùng 1 lần) và {@code download} (stream, an toàn SSRF).
  */
 @RestController
 @RequestMapping("/api/v1/conversations")
@@ -68,6 +69,7 @@ public class ConversationController {
     private final ConversationService conversationService;
     private final GroupConversationService groupService;
     private final CurrentUserResolver currentUserResolver;
+    private final AttachmentDownloadService downloadService;
 
     // ------------------------------------------------------------------------------------ open / create
 
@@ -235,6 +237,43 @@ public class ConversationController {
     @GetMapping("/{conversationId}/attachments/summary")
     public ResponseEntity<SharedAttachmentSummaryResponse> sharedAttachmentsSummary(@PathVariable Long conversationId) {
         return ResponseEntity.ok(conversationService.sharedAttachmentsSummary(user(), conversationId));
+    }
+
+    @PostMapping("/{conversationId}/attachments/{attachmentId}/download-ticket")
+    public ResponseEntity<AttachmentDownloadTicketResponse> createDownloadTicket(
+            @PathVariable Long conversationId, @PathVariable Long attachmentId) {
+        return ResponseEntity.ok(downloadService.createTicket(user(), conversationId, attachmentId));
+    }
+
+    /** Xác thực bằng ticket một lần HOẶC Bearer header (Python: get_current_user_optional); stream qua storage. */
+    @GetMapping("/{conversationId}/attachments/{attachmentId}/download")
+    public ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> downloadAttachment(
+            @PathVariable Long conversationId, @PathVariable Long attachmentId,
+            @RequestParam(value = "ticket", required = false) String ticket) {
+        Long userId;
+        if (ticket != null && !ticket.isEmpty()) {
+            userId = downloadService.consumeTicket(conversationId, attachmentId, ticket);
+        } else {
+            userId = currentUserResolver.getOptionalCurrentActiveUser().map(com.ptiters.marketplace.user.User::getUserId)
+                    .orElseThrow(() -> com.ptiters.marketplace.exception.ApiException.unauthorized(
+                            "Yêu cầu xác thực qua ticket hoặc Authorization Bearer header."));
+        }
+        var target = downloadService.authorize(userId, conversationId, attachmentId);
+        var opened = downloadService.open(target);
+        var response = ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        AttachmentDownloadService.formatContentDisposition(target.originalName(), target.mimeType()))
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE,
+                        target.mimeType() != null && !target.mimeType().isEmpty() ? target.mimeType() : "application/octet-stream")
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "private, no-store");
+        if (opened.contentLength() != null) {
+            response.header(org.springframework.http.HttpHeaders.CONTENT_LENGTH, opened.contentLength());
+        }
+        return response.body(out -> {
+            try (java.io.InputStream in = opened.body()) {
+                in.transferTo(out);
+            }
+        });
     }
 
     @GetMapping("/{conversationId}/presence")

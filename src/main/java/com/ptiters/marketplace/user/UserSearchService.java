@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Tìm kiếm người dùng công khai cho mời nhóm (Python {@code ConversationService.search_users}):
  * chỉ trả user_id, public_id, full_name, avatar_url của user ACTIVE, loại chính mình và (tuỳ chọn) thành viên nhóm.
- * Cần người điều phối nối {@code UserService.searchUsers} → {@code UserSearchService.search} (file user/ hiện có không được sửa ở Track C).
+ * {@code UserService.searchUsers} gọi service này (đã nối ở bước gộp Wave 2).
  */
 @Service
 @RequiredArgsConstructor

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = "spring.datasource.hikari.maximum-pool-size=3")
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TrackCTestConfig.class)
@@ -173,5 +173,47 @@ class AdminUserIntegrationTest {
         assertEquals(alice.getUserId(), r.get(0).userId());
         assertEquals(0, userSearchService.search(admin.getUserId(), "n", 10, null).size());
         assertEquals(0, userSearchService.search(alice.getUserId(), "Nguyen Van", 10, null).size());
+    }
+
+    @Test
+    @DisplayName("GET /users/search: q>=2, limit 1..50, loại chính mình, conversation_id loại thành viên nhóm")
+    void searchEndpoint() throws Exception {
+        jdbc.update("UPDATE users SET full_name = 'Tran Van Hung' WHERE user_id = ?", alice.getUserId());
+        jdbc.update("UPDATE users SET full_name = 'Tran Thi Hoa' WHERE user_id = ?", bob.getUserId());
+        jdbc.update("UPDATE users SET full_name = 'Tran Admin' WHERE user_id = ?", admin.getUserId());
+
+        mockMvc.perform(get("/api/v1/users/search").param("q", "tran")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + fx.token(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[*].email").doesNotExist());
+        // q ngắn hơn 2 ký tự / limit ngoài [1,50] → 422 như FastAPI
+        mockMvc.perform(get("/api/v1/users/search").param("q", "t")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + fx.token(admin)))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(get("/api/v1/users/search").param("q", "tran").param("limit", "51")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + fx.token(admin)))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(get("/api/v1/users/search").param("q", "tran").param("limit", "1")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + fx.token(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
+        mockMvc.perform(get("/api/v1/users/search").param("q", "tran"))
+                .andExpect(status().isUnauthorized());
+
+        Long convId = jdbc.queryForObject(
+                "INSERT INTO conversations (type, title, requires_approval, created_at) VALUES ('GROUP','g',false,now()) RETURNING conversation_id",
+                Long.class);
+        try {
+            jdbc.update("INSERT INTO conversation_members (conversation_id, user_id, role, joined_at) VALUES (?,?,'MEMBER',now())",
+                    convId, alice.getUserId());
+            mockMvc.perform(get("/api/v1/users/search").param("q", "tran").param("conversation_id", String.valueOf(convId))
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + fx.token(admin)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].user_id").value(bob.getUserId()));
+        } finally {
+            jdbc.update("DELETE FROM conversation_members WHERE conversation_id = ?", convId);
+            jdbc.update("DELETE FROM conversations WHERE conversation_id = ?", convId);
+        }
     }
 }

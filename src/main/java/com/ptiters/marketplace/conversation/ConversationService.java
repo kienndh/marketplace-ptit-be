@@ -491,13 +491,8 @@ public class ConversationService {
     }
 
     private void createChatNotification(Long recipientId, Long conversationId, String title, String body) {
-        queries.lockChatNotification(recipientId, conversationId);
-        if (queries.hasUnreadChatNotification(recipientId, conversationId)) {
-            // Python làm mới title/body/created_at của notification chưa đọc (coalesce). NotificationWriter chỉ
-            // hỗ trợ tạo mới, nên giữ nguyên một notification chưa đọc duy nhất cho mỗi (user, hội thoại).
-            return;
-        }
-        notificationWriter.create(recipientId, NotificationType.NEW_MESSAGE, title, body, "CONVERSATION", conversationId);
+        // Giống Python: giữ đúng 1 notification NEW_MESSAGE chưa đọc cho mỗi (user, hội thoại) và làm mới nó.
+        notificationWriter.upsertUnread(recipientId, NotificationType.NEW_MESSAGE, title, body, "CONVERSATION", conversationId);
     }
 
     private List<ValidatedFile> validateFiles(List<MultipartFile> activeFiles) {

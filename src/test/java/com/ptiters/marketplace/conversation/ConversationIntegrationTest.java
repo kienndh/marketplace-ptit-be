@@ -78,7 +78,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * index của invite) đều được kiểm chứng bằng đua nhiều thread hoặc ghi thật.
  */
 @SpringBootTest(properties = {
-        "spring.datasource.hikari.maximum-pool-size=6",
         "spring.servlet.multipart.max-file-size=60MB",
         "spring.servlet.multipart.max-request-size=100MB"
 })

@@ -1,13 +1,18 @@
 package com.ptiters.marketplace.user;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@Validated
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -75,8 +80,10 @@ public class UserController {
 
     @GetMapping("/search")
     public ResponseEntity<List<UserSearchResponse>> searchUsers(
-            @RequestParam("q") String query,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
-        return ResponseEntity.ok(userService.searchUsers(query, limit));
+            @RequestParam("q") @Size(min = 2) String query,
+            @RequestParam(value = "limit", defaultValue = "20") @Min(1) @Max(50) int limit,
+            @RequestParam(value = "conversation_id", required = false) Long conversationId) {
+        User currentUser = currentUserResolver.getCurrentActiveUser();
+        return ResponseEntity.ok(userService.searchUsers(currentUser, query, limit, conversationId));
     }
 }
