@@ -121,7 +121,12 @@ class AdminProductApprovalIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.items[0].product_id").value(p.getProductId()))
-                .andExpect(jsonPath("$.items[0].approval_status").value("PENDING"));
+                .andExpect(jsonPath("$.items[0].approval_status").value("PENDING"))
+                // Hợp đồng Python/FE: category & seller lồng nhau, có listing_type và image_count
+                .andExpect(jsonPath("$.items[0].listing_type").exists())
+                .andExpect(jsonPath("$.items[0].category.category_id").exists())
+                .andExpect(jsonPath("$.items[0].seller.public_id").exists())
+                .andExpect(jsonPath("$.items[0].image_count").isNumber());
     }
 
     @Test
@@ -156,7 +161,8 @@ class AdminProductApprovalIntegrationTest {
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.product_id").value(p.getProductId()))
-                .andExpect(jsonPath("$.approval_status").value("APPROVED"));
+                .andExpect(jsonPath("$.approval_status").value("APPROVED"))
+                .andExpect(jsonPath("$.stock").isNumber());
 
         Product updated = productRepository.findById(p.getProductId()).orElseThrow();
         assertEquals(ProductApprovalStatus.APPROVED, updated.getApprovalStatus());

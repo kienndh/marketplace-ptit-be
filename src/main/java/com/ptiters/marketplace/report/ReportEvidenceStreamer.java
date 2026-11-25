@@ -34,7 +34,18 @@ public class ReportEvidenceStreamer {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    /** CHỈ profile e2e: origin lưu tệp cục bộ được tin cậy (null = tắt). Xem E2eLocalMediaConfiguration. */
+    private static volatile String e2eTrustedPrefix;
+
+    public static void trustLocalPrefixForE2e(String prefix) {
+        e2eTrustedPrefix = prefix;
+    }
+
     public static void validateStorageUrlSafety(String targetUrl) {
+        String local = e2eTrustedPrefix;
+        if (local != null && targetUrl != null && targetUrl.startsWith(local)) {
+            return;
+        }
         if (targetUrl == null || targetUrl.isBlank()) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Đường dẫn tệp không tồn tại.");
         }

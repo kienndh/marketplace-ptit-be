@@ -942,3 +942,8 @@
 - Hibernate ghi `LocalDateTime` theo múi giờ JVM trước khi chuyển `jdbc.time_zone=UTC`: bắt buộc JVM chạy UTC để dữ liệu dùng chung với Python không lệch.
 - `created_at` của `Notification` là `updatable=false`: upsert làm mới phải dùng native `UPDATE` rồi `refresh`.
 - Tránh inline `{param:regex}` vào so khớp route khi đối chiếu: chuẩn hoá mọi `{...}`/`*` thành `{}`.
+
+## [2026-11-25] E2E SMOKE: FE React ↔ Java (profile e2e, Firebase DEV)
+- Chạy kịch bản tự động `scripts/e2e/*.mjs` (3 tài khoản Firebase DEV `chopiters-5739b`, DB `marketplace_java_e2e`, Redis + worker bật) cho hồ sơ, sản phẩm, đơn hàng, đấu giá, chat, report, feedback, community moment, daily need; kiểm kiểu theo `types.ts` của FE (FE chỉ có zod cho request).
+- Sửa Java: DTO admin product approvals khớp Python/FE; `POST /products/{id}/images/upload` từ stub thành upload thật qua `MediaStorage` (+ DRAFT lại tin, chặn khi có đấu giá); lưu trữ media cục bộ chỉ cho profile `e2e`.
+- Kết quả: `clean test` 322/322 PASS. Chi tiết, lỗi còn lại và cách chạy lại: `docs/E2E_FE_SMOKE.md`.

@@ -495,4 +495,31 @@ class ProductControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Images reordered successfully."));
     }
+
+    @Test
+    @DisplayName("POST /api/v1/products/{id}/images/upload - Lưu ảnh qua MediaStorage, ảnh đầu là thumbnail, duyệt cũ về DRAFT")
+    void testUploadProductImage_StoresViaMediaStorageAndInvalidatesApproval() throws Exception {
+        Product p = ProductTestFixtures.createProduct(productRepository, seller, category, "Sách upload ảnh", new BigDecimal("50000"), ProductStatus.AVAILABLE, ProductApprovalStatus.APPROVED);
+        String token = ProductTestFixtures.createToken("seller_prod_uid", seller.getEmail());
+        byte[] png = java.util.Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC");
+        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile("file", "a.png", "image/png", png);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/v1/products/" + p.getProductId() + "/images/upload")
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.image_url").value(org.hamcrest.Matchers.startsWith("https://media.local.test/")))
+                .andExpect(jsonPath("$.is_thumbnail").value(true))
+                .andExpect(jsonPath("$.sort_order").value(0));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/v1/products/" + p.getProductId() + "/images/upload")
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.is_thumbnail").value(false))
+                .andExpect(jsonPath("$.sort_order").value(1));
+
+        Product reloaded = productRepository.findById(p.getProductId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(ProductApprovalStatus.DRAFT, reloaded.getApprovalStatus());
+    }
 }

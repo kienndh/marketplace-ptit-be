@@ -30,6 +30,9 @@ public class ProductService {
     private final CapabilityService capabilityService;
     private final ProductViewCounter productViewCounter;
     private final CloudinaryStorageService cloudinaryStorageService;
+    private final com.ptiters.marketplace.integration.MediaStorage mediaStorage;
+    private final com.ptiters.marketplace.realtime.MediaValidator mediaValidator;
+    private final com.ptiters.marketplace.auction.AuctionRepository auctionRepository;
 
     public record CursorTuple(LocalDateTime time, Long id) {}
     public record InstantCursorTuple(Instant time, Long id) {}
@@ -188,17 +191,19 @@ public class ProductService {
     public static AdminProductApprovalSummary formatAdminApprovalSummary(Product p) {
         Category c = p.getCategory();
         User s = p.getSeller();
+        CategorySummary catSummary = c != null ? new CategorySummary(c.getCategoryId(), c.getName(), c.getSlug(), null) : null;
+        SellerSummary sellerSummary = s != null ? new SellerSummary(s.getPublicId(), s.getFullName(), s.getAvatarUrl()) : null;
         return new AdminProductApprovalSummary(
                 p.getProductId(),
                 p.getTitle(),
                 p.getPrice(),
-                c != null ? c.getCategoryId() : null,
-                c != null ? c.getName() : null,
-                s != null ? s.getPublicId() : null,
-                s != null ? s.getFullName() : null,
-                p.getApprovalStatus() != null ? p.getApprovalStatus().name() : ProductApprovalStatus.PENDING.name(),
+                p.getListingType() != null ? p.getListingType().name() : ListingType.FIXED_PRICE.name(),
                 resolveThumbnailUrl(p.getImages()),
+                catSummary,
+                sellerSummary,
+                p.getImages() != null ? p.getImages().size() : 0,
                 p.getSubmittedForReviewAt(),
+                p.getApprovalStatus() != null ? p.getApprovalStatus().name() : ProductApprovalStatus.PENDING.name(),
                 p.getCreatedAt()
         );
     }
@@ -238,14 +243,15 @@ public class ProductService {
                 p.getDescription(),
                 p.getListingType() != null ? p.getListingType().name() : ListingType.FIXED_PRICE.name(),
                 p.getPrice(),
-                p.getAvailableStock(),
+                p.getStock() != null ? p.getStock() : 1,
                 p.getStatus() != null ? p.getStatus().name() : ProductStatus.AVAILABLE.name(),
-                p.getModerationStatus() != null ? p.getModerationStatus().name() : ProductModerationStatus.CLEAR.name(),
                 p.getApprovalStatus() != null ? p.getApprovalStatus().name() : ProductApprovalStatus.PENDING.name(),
+                p.getModerationStatus() != null ? p.getModerationStatus().name() : ProductModerationStatus.CLEAR.name(),
                 p.getSubmittedForReviewAt(),
+                p.getReviewedBy() != null ? p.getReviewedBy().getUserId() : null,
                 p.getReviewedAt(),
                 p.getReviewNote(),
-                p.getViewCount() != null ? p.getViewCount() : 0,
+                resolveThumbnailUrl(p.getImages()),
                 imgResponses,
                 catSummary,
                 sellerSummary,
@@ -488,40 +494,79 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductImageResponse uploadProductImage(Long productId, User seller, Object file) {
+    public ProductImageResponse uploadProductImage(Long productId, User seller, org.springframework.web.multipart.MultipartFile file) {
         Product product = productRepository.findDetailById(productId)
                 .orElseThrow(() -> ApiException.notFound("Product not found."));
 
-        if (!Objects.equals(product.getSeller().getUserId(), seller.getUserId())) {
+        boolean isAdmin = seller.getRole() == com.ptiters.marketplace.user.UserRole.ADMIN;
+        if (!Objects.equals(product.getSeller().getUserId(), seller.getUserId()) && !isAdmin) {
             throw ApiException.forbidden("Chỉ người bán sở hữu tin đăng mới có quyền tải ảnh.");
+        }
+
+        if (auctionRepository.existsByProductIdAndStatusIn(productId,
+                List.of(com.ptiters.marketplace.auction.AuctionStatus.SCHEDULED, com.ptiters.marketplace.auction.AuctionStatus.ACTIVE))) {
+            throw ApiException.badRequest("Không thể tải thêm hình ảnh khi sản phẩm đang có phiên đấu giá.");
         }
 
         if (product.getImages().size() >= 10) {
             throw ApiException.badRequest("Mỗi sản phẩm chỉ được tải lên tối đa 10 ảnh.");
         }
 
-        String imageUrl = "https://res.cloudinary.com/synthetic/image/upload/v1/products/" + productId + "/" + UUID.randomUUID() + ".jpg";
-        short nextOrder = (short) product.getImages().size();
-        boolean isThumb = product.getImages().isEmpty();
+        if (file == null || file.isEmpty()) {
+            throw ApiException.badRequest("Vui lòng chọn tệp ảnh để tải lên.");
+        }
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw ApiException.badRequest("Không đọc được tệp ảnh tải lên.");
+        }
+        String filename = file.getOriginalFilename() == null ? "image" : file.getOriginalFilename();
+        mediaValidator.validateImageBytes(filename, bytes);
 
-        ProductImage img = ProductImage.builder()
-                .product(product)
-                .imageUrl(imageUrl)
-                .sortOrder(nextOrder)
-                .isThumbnail(isThumb)
-                .build();
+        com.ptiters.marketplace.integration.MediaStorage.UploadedAsset asset;
+        try {
+            asset = mediaStorage.uploadProductImage(bytes, filename, productId);
+        } catch (com.ptiters.marketplace.integration.MediaStorageNotConfiguredException e) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Image storage service is not configured.");
+        } catch (com.ptiters.marketplace.integration.MediaStorageException e) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Failed to upload image to storage service: " + e.getMessage());
+        }
 
-        ProductImage savedImg = productImageRepository.save(img);
-        product.getImages().add(savedImg);
+        try {
+            short nextOrder = (short) (productImageRepository.findMaxSortOrder(productId) + 1);
+            boolean isThumb = product.getImages().isEmpty();
 
-        return new ProductImageResponse(
-                savedImg.getImageId(),
-                productId,
-                savedImg.getImageUrl(),
-                savedImg.getImageUrl(),
-                savedImg.getSortOrder(),
-                savedImg.getIsThumbnail()
-        );
+            ProductImage img = ProductImage.builder()
+                    .product(product)
+                    .imageUrl(asset.secureUrl())
+                    .sortOrder(nextOrder)
+                    .isThumbnail(isThumb)
+                    .build();
+            ProductImage savedImg = productImageRepository.save(img);
+            product.getImages().add(savedImg);
+
+            // Python: sửa ảnh làm vô hiệu duyệt cũ → quay về DRAFT trong cùng transaction
+            ProductApprovalStatus ap = product.getApprovalStatus();
+            if (ap == ProductApprovalStatus.APPROVED || ap == ProductApprovalStatus.PENDING || ap == ProductApprovalStatus.REJECTED) {
+                product.setApprovalStatus(ProductApprovalStatus.DRAFT);
+                product.setSubmittedForReviewAt(null);
+                productRepository.save(product);
+            }
+
+            return new ProductImageResponse(
+                    savedImg.getImageId(),
+                    productId,
+                    savedImg.getImageUrl(),
+                    java.util.Optional.ofNullable(mediaStorage.detailImageUrl(savedImg.getImageUrl())).orElse(savedImg.getImageUrl()),
+                    savedImg.getSortOrder(),
+                    savedImg.getIsThumbnail()
+            );
+        } catch (RuntimeException e) {
+            // bồi hoàn: xoá asset đã upload nếu lưu DB lỗi (như Python)
+            mediaStorage.destroyAsset(asset.publicId(), "image");
+            throw e;
+        }
     }
 
     @Transactional

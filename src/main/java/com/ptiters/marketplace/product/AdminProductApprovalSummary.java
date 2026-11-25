@@ -1,21 +1,23 @@
 package com.ptiters.marketplace.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ptiters.marketplace.category.CategorySummary;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
+/** Khớp Python {@code AdminProductApprovalSummary} (category/seller lồng nhau, listing_type, image_count). */
 public record AdminProductApprovalSummary(
         @JsonProperty("product_id") Long productId,
         String title,
         BigDecimal price,
-        @JsonProperty("category_id") Integer categoryId,
-        @JsonProperty("category_name") String categoryName,
-        @JsonProperty("seller_public_id") UUID sellerPublicId,
-        @JsonProperty("seller_name") String sellerName,
-        @JsonProperty("approval_status") String approvalStatus,
+        @JsonProperty("listing_type") String listingType,
         @JsonProperty("thumbnail_url") String thumbnailUrl,
+        CategorySummary category,
+        SellerSummary seller,
+        @JsonProperty("image_count") int imageCount,
         @JsonProperty("submitted_for_review_at") Instant submittedForReviewAt,
+        @JsonProperty("approval_status") String approvalStatus,
         @JsonProperty("created_at") LocalDateTime createdAt
 ) {}

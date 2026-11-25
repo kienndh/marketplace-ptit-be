@@ -8,20 +8,22 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** Khớp Python {@code AdminProductApprovalDetailResponse} (stock tổng, reviewed_by, thumbnail_url; không có view_count). */
 public record AdminProductApprovalDetailResponse(
         @JsonProperty("product_id") Long productId,
         String title,
         String description,
         @JsonProperty("listing_type") String listingType,
         BigDecimal price,
-        @JsonProperty("available_stock") Integer availableStock,
+        Integer stock,
         String status,
-        @JsonProperty("moderation_status") String moderationStatus,
         @JsonProperty("approval_status") String approvalStatus,
+        @JsonProperty("moderation_status") String moderationStatus,
         @JsonProperty("submitted_for_review_at") Instant submittedForReviewAt,
+        @JsonProperty("reviewed_by") Long reviewedBy,
         @JsonProperty("reviewed_at") Instant reviewedAt,
         @JsonProperty("review_note") String reviewNote,
-        @JsonProperty("view_count") Integer viewCount,
+        @JsonProperty("thumbnail_url") String thumbnailUrl,
         List<ProductImageResponse> images,
         CategorySummary category,
         SellerDetailSummary seller,

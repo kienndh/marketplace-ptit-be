@@ -17,9 +17,16 @@ public class LocalMediaStorage implements MediaStorage {
     private static final String ROOT = "student-marketplace/test";
 
     private final Path baseDir;
+    private final String baseUrl;
 
     public LocalMediaStorage(Path baseDir) {
+        this(baseDir, BASE_URL);
+    }
+
+    /** Dùng cho profile {@code e2e}: URL trả về trỏ tới đường dẫn tĩnh của chính Java để FE hiển thị được. */
+    public LocalMediaStorage(Path baseDir, String baseUrl) {
         this.baseDir = baseDir;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
     }
 
     public static LocalMediaStorage inTempDirectory() {
@@ -87,7 +94,7 @@ public class LocalMediaStorage implements MediaStorage {
             throw new MediaStorageException("Không tìm thấy tài nguyên với public_id: " + publicId);
         }
         try {
-            return new VideoResource(publicId, BASE_URL + publicId, "mp4", Files.size(file), null);
+            return new VideoResource(publicId, baseUrl + publicId, "mp4", Files.size(file), null);
         } catch (IOException e) {
             throw new MediaStorageException("Kiểm chứng tài nguyên thất bại: " + e.getMessage(), e);
         }
@@ -111,12 +118,12 @@ public class LocalMediaStorage implements MediaStorage {
         if (publicId == null || publicId.isEmpty()) {
             return defaultUrl == null ? "" : defaultUrl;
         }
-        return BASE_URL + publicId;
+        return baseUrl + publicId;
     }
 
     @Override
     public String tutorialThumbnailUrl(String videoStorageKey, Long durationMs) {
-        return videoStorageKey == null || videoStorageKey.isEmpty() ? "" : BASE_URL + videoStorageKey + ".jpg";
+        return videoStorageKey == null || videoStorageKey.isEmpty() ? "" : baseUrl + videoStorageKey + ".jpg";
     }
 
     private UploadedAsset store(byte[] data, String folder, String resourceType, String name) {
@@ -137,7 +144,7 @@ public class LocalMediaStorage implements MediaStorage {
         if (name != null && name.contains(".")) {
             ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
         }
-        return new UploadedAsset(BASE_URL + publicId, publicId, resourceType, (long) data.length,
+        return new UploadedAsset(baseUrl + publicId, publicId, resourceType, (long) data.length,
                 ext.isEmpty() ? null : ext, null);
     }
 }

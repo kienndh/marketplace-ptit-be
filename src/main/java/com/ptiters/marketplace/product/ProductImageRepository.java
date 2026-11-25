@@ -16,4 +16,7 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Long
     long countByProductProductId(Long productId);
 
     Optional<ProductImage> findByProductProductIdAndIsThumbnailTrue(Long productId);
+
+    @org.springframework.data.jpa.repository.Query("select coalesce(max(i.sortOrder), -1) from ProductImage i where i.product.productId = :productId")
+    int findMaxSortOrder(@org.springframework.data.repository.query.Param("productId") Long productId);
 }
