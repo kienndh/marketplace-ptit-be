@@ -1,6 +1,7 @@
 package com.ptiters.marketplace.order;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.math.BigDecimal;
 
 public record OrderItemResponse(
@@ -8,6 +9,7 @@ public record OrderItemResponse(
         @JsonProperty("product_id") Long productId,
         @JsonProperty("product_title") String productTitle,
         @JsonProperty("product_image_url") String productImageUrl,
-        Integer quantity,
+        @JsonProperty("quantity") Integer quantity,
         @JsonProperty("price_at_purchase") BigDecimal priceAtPurchase
-) {}
+) {
+}

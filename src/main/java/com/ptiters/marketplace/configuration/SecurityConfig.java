@@ -46,6 +46,16 @@ public class SecurityConfig {
 
                 // ====== PHÂN VÙNG TRACK: mỗi track CHỈ thêm rule trong khối của mình (matcher khớp đầu tiên thắng) ======
                 // >>> TRACK A (order, auction)
+                // Đơn hàng: mọi endpoint cần đăng nhập
+                .requestMatchers("/api/v1/orders", "/api/v1/orders/**").authenticated()
+                // Đấu giá: các route private đặt TRƯỚC rule GET công khai (khớp đầu tiên thắng)
+                .requestMatchers("/api/v1/auctions/me", "/api/v1/auctions/me/**").authenticated()
+                // GET công khai (optional auth): chi tiết, theo sản phẩm, lịch sử bid
+                .requestMatchers(HttpMethod.GET, "/api/v1/auctions/{auctionId:[0-9]+}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/auctions/{auctionId:[0-9]+}/bids").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/auctions/by-product/{productId:[0-9]+}").permitAll()
+                // Còn lại (tạo/huỷ/đặt giá/checkout/convert-fixed-price): cần đăng nhập
+                .requestMatchers("/api/v1/auctions", "/api/v1/auctions/**").authenticated()
                 // <<< TRACK A
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK B (conversation)
