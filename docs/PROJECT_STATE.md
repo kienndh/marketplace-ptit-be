@@ -6,62 +6,56 @@
 ---
 
 ## 1. Current Phase (Giai đoạn hiện tại)
-**Wave 0 — Nền tảng dùng chung cho 6 track song song** — *Hoàn thành* (trên nền Phase 4: Product & Favorite, đã hoàn thành 100%).
-- **Cột mốc hoàn thành**: PR01 → PR04 (Category, User/Auth, Product, Favorite — xem `PROJECT_HISTORY.md`) và **Wave 0**:
-  - 26 entity + repository JPA cho toàn bộ bảng còn lại (order, auction, review, report, conversation, notification, feedback, communitymoment, tutorial, dailyneed, worker), ánh xạ khớp 100% schema Alembic; enum skeleton sai đã được sửa theo Python.
-  - Hạ tầng dùng chung (interface + bản mặc định an toàn): `NotificationWriter`, `PushNotificationSender`, `UserEventPublisher`, `AuctionEventPublisher`, `PresenceService`, `MediaStorage`, `MediaValidator`, `WorkerRetryExecutor`.
-  - `pom.xml` thêm WebSocket, Data Redis, Cloudinary SDK, Firebase Admin SDK; `SecurityConfig` có 6 khối track; `docs/PARALLEL_PLAN.md`, `docs/pr-reports/README.md`.
-  - 6 worktree + 6 DB test bản sao (`marketplace_java_test_a` … `_e`) — xem `docs/PARALLEL_PLAN.md`.
-- **Cột mốc tiếp theo**: 6 track song song A–E (order+auction / conversation / review+report+admin / notification+feedback / community moment+tutorial+daily need / realtime+infra), sau đó merge và Phase tích hợp.
+**Wave 2 — Gộp 6 track + tích hợp toàn hệ thống** — *Hoàn thành* (2026-11-25). Chuyển đổi Python → Java đạt **153/153 endpoint HTTP + 2/2 WebSocket** về mặt route (xem mục 3b).
+- **Cột mốc đã xong**: PR01 → PR04 (Category, User/Auth, Product, Favorite) → Wave 0 (nền tảng dùng chung) → Wave 1 (6 track song song A, B, C, D1, D2, E) → **Wave 2** (gộp bằng `git merge --squash` theo thứ tự E → A → C → D1 → D2 → B, rồi tích hợp).
+- **Cột mốc tiếp theo**: kiểm thử parity hành vi với Python trên dữ liệu thật (ngoài phạm vi route), rate limiting HTTP, nâng dev DB, cài JDK 21 (xem mục 9–10).
 
 ---
 
 ## 2. Current Task (Công việc hiện tại)
-**Task PR04 — Product & Favorite Business Logic & PostgreSQL Integration**:
-- [x] Ánh xạ JPA Entity & Bảng vật lý PostgreSQL 15+:
-  - `Product.java`: `@Entity @Table(name = "products")` khớp 100% PostgreSQL schema (`DB_v7.md`), Native Enum (`ListingType`, `ProductStatus`, `ProductModerationStatus`, `ProductApprovalStatus`), quan hệ `@ManyToOne` Lazy với `User` (seller) và `Category`, `@OneToMany` với `ProductImage` kèm cấu hình `@BatchSize(size = 20)` chống triệt để N+1 queries.
-  - `ProductImage.java`: `@Entity @Table(name = "product_images")` (`imageId`, `product`, `imageUrl`, `sortOrder`, `isThumbnail`).
-  - `Favorite.java` & `FavoriteId.java`: `@Entity @Table(name = "favorites") @IdClass(FavoriteId.class)` composite key (`userId`, `productId`).
-- [x] Phân trang Keyset Cursor & Hiệu năng Truy vấn PostgreSQL:
-  - Custom Repositories (`ProductRepositoryCustomImpl`, `FavoriteRepositoryCustomImpl`): Keyset cursor phân trang `(created_at, product_id)` mã hóa Base64 an toàn.
-  - Xử lý tương thích kiểu dữ liệu PostgreSQL: Loại bỏ phép `DISTINCT` trên Entity chứa cột `JSON` (`social_links`) để tránh lỗi `could not identify an equality operator for type json`, dùng parameter binding cho native enum `UserStatus`.
-- [x] Bộ đếm Lượt xem Chống gian lận (24h View Deduplication Counter):
-  - `ProductViewCounter.java`: Cơ chế TTL 24 giờ cho viewer token (`u:<userId>` hoặc `a:<anonymousId>`), cập nhật atomic `UPDATE products SET view_count = GREATEST(view_count, :cachedFloor)`.
-- [x] Logic Nghiệp vụ & Ranh giới Bảo mật (ProductService, FavoriteService):
-  - Chặn đăng tin khi tài khoản bị chế tài `SELL` (`UserCapabilityRestriction`).
-  - Kiểm soát quyền BOLA: Chỉ chủ sở hữu hoặc ADMIN mới được sửa tin, xóa ảnh, đổi thumbnail, reorder ảnh hoặc xem tin ở trạng thái DRAFT.
-  - Idempotent favorite: Thêm/xóa yêu thích không báo lỗi khi trùng lặp.
-- [x] Kiểm thử Tích hợp Toàn diện (153/153 tests PASS):
-  - `ProductControllerIntegrationTest` (15 tests): CRUD, BOLA, Sell restriction 403, Cursor pagination, View counter 24h.
-  - `AdminProductApprovalIntegrationTest` (5 tests): Duyệt tin, từ chối kèm lý do, bảo vệ quyền ADMIN 403, Conflict 409 khi tin không ở PENDING.
-  - `FavoriteControllerIntegrationTest` (7 tests): Yêu thích sản phẩm, idempotent, ẩn sản phẩm đã xóa/chưa duyệt.
-  - Bảo toàn 119 tests cũ của Category, User, Security và ApplicationContext.
-- [x] Bảo toàn CSDL & Ranh giới:
-  - CSDL `marketplace_java_dev`: 286 users, 26 categories (nguyên vẹn 100%).
-  - CSDL `marketplace_java_test`: 0 users, 0 categories, 0 products, 0 favorites (cô lập, dọn dẹp sạch sẽ 100%).
-  - `student-marketplace-be/`: Hoàn toàn giữ nguyên (READ-ONLY).
+**Wave 2 — Gộp & tích hợp** (đã hoàn tất, chờ người dùng duyệt):
+- [x] Gộp 6 track bằng `git merge --squash` (1 commit mỗi track, tác giả theo `git config`, KHÔNG có trailer AI), `.\mvnw.cmd clean compile` sau mỗi track; xung đột chỉ ở `SecurityConfig` (giữ đủ rule mọi track, các khối TRACK đứng sau rule OPTIONS và trước catch-all, không wildcard nào nuốt route module khác).
+- [x] Tích hợp (commit `feat(integration)`):
+  1. `application-test.yml`: Hikari `maximum-pool-size: 2`, `minimum-idle: 1`; gỡ mọi override pool riêng trong 11 class test → `clean test` mặc định xanh, không cần biến môi trường.
+  2. UTC: `TimeZone.setDefault(UTC)` trong `MarketplaceApplication.main` + `-Duser.timezone=UTC` trong `argLine` surefire; test `UtcTimestampIntegrationTest` đọc `created_at::text` bằng SQL thô và so với UTC (không còn fixture nào bù giờ thủ công). Đã thử boot với `-Duser.timezone=Asia/Saigon` → code vẫn ép về UTC.
+  3. `spring.servlet.multipart.max-file-size: 50MB`, `max-request-size: 60MB` (giới hạn từng loại file vẫn do `MediaValidator`/`ChatAttachmentValidator`).
+  4. `GET /users/search`: `UserService.searchUsers` → `UserSearchService.search`; tham số `q` (min 2), `limit` (mặc định 20, 1..50), `conversation_id`; bỏ `UnsupportedOperationException`; bỏ trần 20 kết quả ở repository (Python không cắt).
+  5. Chat: `download-ticket` (Redis, key `download_ticket:<sha256>`, 60s, dùng 1 lần qua GETDEL) và `download` (ticket hoặc Bearer; kiểm tra lại quyền thành viên + `joined_at` nhóm tại thời điểm tải; chặn SSRF chỉ https + `res.cloudinary.com`, không theo redirect; `Content-Disposition` RFC 5987); `NotificationWriter.upsertUnread` giữ 1 notification `NEW_MESSAGE` chưa đọc cho mỗi (user, hội thoại) và làm mới `title/body/created_at` như Python; `PresenceService` bản Redis (Track E) tự thay bản NoOp khi có cấu hình Redis.
+  6. `marketplace.chat.official-support-group-id: ${OFFICIAL_SUPPORT_GROUP_ID:0}` (mặc định 0 → 503 như Python).
+  7. Admin xem bằng chứng report nhận `?token=` như Python: `BearerTokenResolver` trong `SecurityConfig` **chỉ** cho `GET /api/v1/admin/reports/{id}/evidence/{id}` (quyền ADMIN vẫn kiểm ở controller). *Đây là chỗ sửa `SecurityConfig` ngoài khối track.*
+  8. Tiêu đề notification đấu giá giữ theo code Python (xem mục 9, rủi ro #9).
+  9. Dọn: xoá 2 skeleton Wave 0 không dùng (`order/OrderWebSocketHandler`, `auction/AuctionWebSocketHandler`); tắt Redis repositories (`spring.data.redis.repositories.enabled: false`).
+- [x] `scripts/route_parity.py` + `docs/ROUTE_PARITY.md` (sinh tự động): 153/153 HTTP, 2/2 WS, 0 route chỉ có ở Java.
+- [x] Boot thử profile mặc định (`marketplace_java_dev`, `ddl-auto: validate`, Redis local `sm_redis`): `Started MarketplaceApplication`; chỉ gọi `GET /categories` (200) và 2 route 401; đã tắt app.
 
 ---
 
 ## 3. Status (Trạng thái)
-- **Tài liệu Kiến trúc Phase 4**: Hoàn thành và đồng bộ.
-- **Mã nguồn Module Product & Favorite**: Đạt chuẩn tương thích API Contract 100% với Python FastAPI và React Frontend.
 - **Biên dịch (`.\mvnw.cmd clean compile`)**: `BUILD SUCCESS`.
-- **Kiểm thử (`.\mvnw.cmd test`)**: `BUILD SUCCESS` (**153/153 tests PASS**, 0 failures, 0 errors, 0 skipped).
-  - 1 ApplicationContext test (`MarketplaceApplicationTests`)
-  - 3 User read-only dev DB tests (`UserReadOnlyRepositoryTest`)
-  - 4 User write test DB tests (`UserWriteIntegrationTest`)
-  - 4 Category write test DB tests (`CategoryWriteIntegrationTest`)
-  - 9 Category HTTP API tests (`CategoryControllerIntegrationTest`)
-  - 19 Firebase JWT Validator unit tests (`FirebaseJwtValidatorTest`)
-  - 23 Security Integration tests (`SecurityIntegrationTest`)
-  - 18 User Identity Resolution Integration tests (`UserIdentityResolutionIntegrationTest`)
-  - 38 User Controller HTTP Integration tests (`UserControllerIntegrationTest`)
-  - 15 Product Controller HTTP Integration tests (`ProductControllerIntegrationTest`)
-  - 5 Admin Product Approval HTTP Integration tests (`AdminProductApprovalIntegrationTest`)
-  - 7 Favorite Controller HTTP Integration tests (`FavoriteControllerIntegrationTest`)
-- **Flyway**: Đang TẮT an toàn (`spring.flyway.enabled: false`). Hibernate ORM: `ddl-auto: validate` hoạt động 100% chuẩn xác với PostgreSQL thật.
+- **Kiểm thử (`.\mvnw.cmd clean test`, không đặt biến môi trường nào)**: `BUILD SUCCESS` — **321/321 PASS**, 0 failures, 0 errors, 0 skipped (40 test class), chạy trên `marketplace_java_test` (pool Hikari 2/1).
+- **Flyway**: TẮT an toàn (`spring.flyway.enabled: false`). **Hibernate**: `ddl-auto: validate` (đã xác nhận bằng boot trên `marketplace_java_dev`).
+- **Worker/scheduler**: cờ mặc định TẮT (xem báo cáo từng track).
 
+### 3b. Bảng parity endpoint (route Python ↔ Java; chi tiết từng dòng: `docs/ROUTE_PARITY.md`)
+| Module (Python) | HTTP | WS | Java |
+|---|---|---|---|
+| categories | 2 | | Done |
+| users (+admin users) | 10 + 3 | | Done (`/users/search` đã nối) |
+| products (+admin approvals) | 12 + 3 | | Done |
+| favorites | 4 | | Done |
+| orders | 11 | `/ws/me` | Done (Track A + E) |
+| auctions | 9 | `/ws/auctions/{id}` | Done (Track A + E) |
+| reviews | 4 | | Done (Track C) |
+| reports (+admin reports/users) | 2 + 6 | | Done (Track C) |
+| conversations | 35 | | Done (Track B; `download-ticket`/`download` ở Wave 2) |
+| notifications | 7 | | Done (Track D1) |
+| feedback (+admin feedback/support/claims) | 8 + 4 + 5 + 3 | | Done (Track D1) |
+| community moments (+admin) | 2 + 5 | | Done (Track D2) |
+| tutorials (+admin) | 1 + 10 | | Done (Track D2) |
+| daily needs | 7 | | Done (Track D2) |
+| **Tổng** | **153/153** | **2/2** | |
+
+> Lưu ý: parity ở đây là **route (method + path)**; hành vi từng endpoint được kiểm bằng integration test của từng track (báo cáo tại `docs/pr-reports/TRACK_*.md`), chưa có đối chiếu response-by-response với Python trên cùng dữ liệu.
 
 ---
 
@@ -113,12 +107,10 @@
 ---
 
 ## 6. Recently Completed (Các công việc vừa hoàn thành)
-- Hoàn thành toàn diện Phase 4 (Product & Favorite Module Migration) với kết nối PostgreSQL thật và bảo đảm `spring.jpa.hibernate.ddl-auto: validate`.
-- Xây dựng Entity JPA `Product`, `ProductImage`, `Favorite` tương thích 100% với PostgreSQL 15+ native enum và constraints.
-- Cài đặt Keyset Cursor Pagination Base64 mã hóa an toàn, loại bỏ triệt để Cartesian product và lỗi `equality operator for type json`.
-- Cài đặt 24h View Deduplication Counter (`ProductViewCounter`) với TTL và atomic update.
-- Bổ sung 34 tests tích hợp mới bao phủ toàn diện: `ProductControllerIntegrationTest` (15 tests), `AdminProductApprovalIntegrationTest` (5 tests), `FavoriteControllerIntegrationTest` (7 tests) cùng các unit tests.
-- Bộ kiểm thử tự động toàn dự án đạt **153/153 tests PASS (0 failures, 0 errors, 0 skipped)**.
+- Wave 2: gộp 6 track (E → A → C → D1 → D2 → B) + tích hợp (mục 2) + sinh bảng parity tự động.
+- Wave 1: 6 track song song hoàn tất (báo cáo ở `docs/pr-reports/TRACK_A..E.md`, D1, D2).
+- Wave 0: 26 entity + hạ tầng dùng chung; Phase 1–4: Category, User/Auth, Product, Favorite.
+- Bộ kiểm thử toàn dự án: **321/321 PASS**.
 
 ---
 
@@ -144,14 +136,14 @@
 
 ## 8. Verification Baseline (Đường cơ sở kiểm thử)
 - **Biên dịch**: `./mvnw.cmd clean compile` -> `BUILD SUCCESS`.
-- **Kiểm thử**: `./mvnw.cmd clean test` -> `BUILD SUCCESS` (**171 tests PASS**, 0 failures, 0 errors, 0 skipped) = 153 test cũ + 18 test Wave 0:
-  - `MediaValidatorTest` (7), `WorkerRetryExecutorTest` (5), `NotificationWriterIntegrationTest` (3, ghi thật vào PostgreSQL rồi dọn sạch), `Wave0EntityMappingIntegrationTest` (2: HQL cho 33 entity + round-trip Order/Items/History với native enum `payment_status_t`), `DevSchemaReadOnlyValidationTest` (1: context profile mặc định trỏ `marketplace_java_dev`, chỉ SELECT).
-  - Context load với `ddl-auto: validate` là phép kiểm tra mapping của toàn bộ entity mới (trên cả `_test` lẫn `_dev`).
-- **Cách build trên máy hiện tại** (chỉ có JDK 17 mặc định và JDK 26): xem `docs/PARALLEL_PLAN.md` mục 7 (`JDK_JAVAC_OPTIONS=-proc:full`, `-Dmaven.compiler.fork=true`, `-Dlombok.version=1.18.46`). Có JDK 21 thì không cần.
+- **Kiểm thử**: `./mvnw.cmd clean test` -> `BUILD SUCCESS` (**321 tests PASS**, 0 failures, 0 errors, 0 skipped; Wave 2). Context load với `ddl-auto: validate` kiểm mapping toàn bộ entity (trên `_test` lẫn `_dev`).
+- **Cách build trên máy hiện tại** (chỉ có JDK 17 mặc định và JDK 26; **không còn cần** biến môi trường pool Hikari): xem `docs/PARALLEL_PLAN.md` mục 7 (`JDK_JAVAC_OPTIONS=-proc:full`, `-Dmaven.compiler.fork=true`, `-Dlombok.version=1.18.46`). Có JDK 21 thì không cần.
 - **Tình trạng CSDL sau kiểm thử** (môi trường Docker `sm_postgres` PostgreSQL 15, `sm_redis` Redis 7 được **dựng lại** ngày 2026-11-25 vì container/volume cũ đã mất):
   - `marketplace_java_test`: 0 dòng ở mọi bảng (Alembic `c9d0e1f2a3b4`); 6 bản sao `_a`, `_b`, `_c`, `_d1`, `_d2`, `_e` tạo bằng `TEMPLATE`.
   - `marketplace_java_dev`: schema Alembic `b8c9d0e1f2a3` (thiếu `user_device_tokens`) + **10 category seed + 3 user tổng hợp** — KHÔNG còn 286 users / 26 categories của bản chụp cũ (không khôi phục được; theo quyết định của người dùng chỉ dựng schema + seed).
   - `student_marketplace`: DB rỗng chưa migrate (nguồn dữ liệu Python tham chiếu cũ đã mất).
+
+- **Sau Wave 2**: `marketplace_java_test` chỉ còn 1 dòng `alembic_version`, mọi bảng nghiệp vụ 0 dòng; `marketplace_java_dev` giữ 10 category + 3 user; 6 DB `marketplace_java_test_*` còn nguyên (người dùng tự xoá nếu muốn).
 
 ---
 
@@ -166,17 +158,18 @@
    - Logic phân quyền nghiệp vụ (403 Forbidden, BOLA) đã hiện thực trong `UserService`, `ProductService`, `FavoriteService`; các module mới (6 track) phải tuân thủ cùng quy ước.
 5. **Cấu trúc phản hồi lỗi 422 của Category (P2)**:
    - Đang trả về `{"detail": "Invalid value for request parameter."}` hoặc `{"detail": "Dữ liệu không hợp lệ", "errors": {...}}`. Schema này khác biệt cấu trúc chi tiết với mảng Pydantic của FastAPI nhưng hoàn toàn tương thích với Axios interceptor của React frontend.
+6. **Rate limiting HTTP (API_CONTRACT §1.1) chưa có (P1)**: Python giới hạn Auth/Catalog/Admin/Chat video quota qua Redis; Java chưa có Servlet Filter chung (`ClientIpResolver` đã sẵn). Ngoài phạm vi Wave 2.
+7. **Chưa kiểm tỉ lệ video dọc 9:16 của Tutorial phía server (P2)**: `MediaStorage.VideoResource` chưa có `width/height`.
+8. **Dev DB thiếu `user_device_tokens` (P2)**: nâng `marketplace_java_dev` lên Alembic `c9d0e1f2a3b4`; hiện token FCM xử lý bằng `JdbcTemplate` (`DeviceTokenStore`) và bắt `42P01`.
+9. **Tiêu đề notification đấu giá lệch hợp đồng (P3)**: Java theo code Python (bản đang chạy production): "Có lượt đấu giá mới" (`AUCTION_BID`), "Bạn đã bị vượt giá" (`AUCTION_OUTBID`), "Bạn đã thắng đấu giá" (`AUCTION_WON`), "Đấu giá đã kết thúc" (`AUCTION_ENDED`). `API_CONTRACT.md` mục 12.6 ghi "Lượt đặt giá mới", "Bạn đã bị trả giá cao hơn", "Chúc mừng! Bạn đã thắng đấu giá". Cần chọn nguồn chuẩn nếu muốn đồng bộ tài liệu.
+10. **JDK 21 chưa cài (P2)**: máy dev build bằng JDK 26 + `-proc:full` + `-Dlombok.version=1.18.46` (xem `PARALLEL_PLAN.md` §7). Cần xác nhận lại trên JDK 21 trước khi bàn giao.
+11. **Chưa chạy với Redis/Cloudinary/Firebase thật (P2)**: ticket download mới được test với Redis local; stream tệp thật từ Cloudinary, FCM thật và worker (cờ mặc định TẮT) chưa được kiểm trên môi trường thật. Rate limit chat video (Redis) cũng chưa có.
+12. **`ReportEvidenceStreamer` dùng chung cho chat download**: `MediaStorage` chưa có phương thức stream; cân nhắc gom về một `SafeMediaStreamer` trung lập sau này.
 
 ---
 
 ## 10. Next Steps (Các bước tiếp theo)
-1. **Chạy 6 track song song** (mỗi track một phiên Claude Code trong worktree riêng, DB test riêng) theo `docs/PARALLEL_PLAN.md`:
-   - A: `order/`, `auction/`, `worker/OrderAutoCancelWorker` — nhánh `track/A-order-auction`.
-   - B: `conversation/` — `track/B-conversation`.
-   - C: `review/`, `report/`, admin users + search (file mới trong `user/`) — `track/C-review-report-admin`.
-   - D1: `notification/` (trừ `NotificationWriter`), `feedback/` — `track/D1-notification-feedback`.
-   - D2: `communitymoment/`, `tutorial/`, `dailyneed/` — `track/D2-moment-tutorial-dailyneed`.
-   - E: `realtime/`, `integration/`, `worker/MediaCleanup*` (bean thật thay bản mặc định) — `track/E-realtime-infra`.
-2. Mỗi track ghi `docs/pr-reports/TRACK_<ID>.md`, không sửa `pom.xml`, `application*.yml`, `PROJECT_STATE.md`, `PROJECT_HISTORY.md`, entity/interface của Wave 0.
-3. Người điều phối merge các nhánh về `main` (thứ tự gợi ý ở `PARALLEL_PLAN.md` mục 8), chạy toàn bộ suite trên `marketplace_java_test`, rồi cập nhật tài liệu này.
-4. Việc còn treo: nâng `marketplace_java_dev` lên Alembic `c9d0e1f2a3b4` để gắn `@Entity` cho `UserDeviceToken`; quyết định có khôi phục dữ liệu dev (286 users / 26 categories) hay không; gom `product/` về `MediaStorage`.
+1. Người dùng duyệt Wave 2 (review 8 bước ở báo cáo cuối) rồi mới push (chưa push gì lên `origin`).
+2. Ưu tiên cao: rate limiting HTTP (§1.1); chạy so sánh response Java ↔ Python cho các luồng chính (order, auction, chat) trên cùng dữ liệu; kiểm WebSocket/Redis/Cloudinary/FCM trên môi trường thử thật.
+3. Ưu tiên trung bình: nâng dev DB (`user_device_tokens`), cài JDK 21 và chạy lại suite; kiểm tỉ lệ video 9:16; quyết định tiêu đề notification đấu giá; khôi phục dữ liệu dev (286 users / 26 categories) nếu cần.
+4. Dọn dẹp: xoá DB `marketplace_java_test_a/_b/_c/_d1/_d2/_e` và các nhánh `track/*` khi không còn cần (worktree đã gỡ, nhánh còn nguyên).

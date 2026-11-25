@@ -908,3 +908,37 @@
 - Không inline enum PostgreSQL native vào HQL (`type "userstatus" does not exist`) — luôn binding tham số.
 - Entity tên `Order` dùng được trong HQL của Hibernate 7.
 - Cột `timestamptz` phải map `OffsetDateTime` (không phải `LocalDateTime`) để `ddl-auto: validate` đạt.
+
+
+---
+
+## Wave 1 — 6 track song song (2026-11-25)
+
+### 1. Bối cảnh
+- Sáu phiên Claude Code làm song song trong 6 worktree + 6 DB test bản sao: A (order + auction), B (conversation), C (review + report + admin users), D1 (notification + feedback + support), D2 (community moment + tutorial + daily need), E (realtime Redis WebSocket + Cloudinary + Firebase push + media cleanup worker). Mỗi track có báo cáo `docs/pr-reports/TRACK_<ID>.md` theo review 8 bước.
+
+### 2. Kết quả
+- Mỗi track đạt parity với Python cho module của mình và có integration test trên PostgreSQL thật; test cũ không regress.
+- Điểm treo bàn giao cho bước gộp: pool Hikari (cạn kết nối khi nhiều context cùng sống), múi giờ JVM lệch −7h so với UTC, giới hạn multipart, nối `/users/search`, `download-ticket`/`download`, làm mới notification `NEW_MESSAGE`, `?token=` cho evidence admin, biến môi trường nhóm hỗ trợ chính thức.
+
+---
+
+## Wave 2 — Gộp 6 track và kiểm tra toàn hệ thống (2026-11-25)
+
+### 1. Gộp
+- `git merge --squash` từng nhánh theo thứ tự E → A → C → D1 → D2 → B, mỗi track một commit `feat(<module>): ...` (tác giả theo `git config`, không trailer AI), `.\mvnw.cmd clean compile` sau mỗi lần. Xung đột duy nhất ở `SecurityConfig` (mỗi track thêm rule trong khối của mình) — giữ đủ rule, đúng thứ tự ưu tiên; sau đó dọn lại các dòng đánh dấu khối bị nhân đôi.
+- Hai commit Wave 0 chưa push có trailer `Co-Authored-By` đã được viết lại message (nhánh backup `backup/pre-msg-cleanup` giữ bản gốc); không viết lại commit đã có trên `origin`.
+
+### 2. Tích hợp
+- Pool Hikari test 2/1 (không còn override trong test); JVM ép UTC (main + surefire) kèm test SQL thô; multipart 50MB/60MB; `OFFICIAL_SUPPORT_GROUP_ID`; `/users/search` nối `UserSearchService`; chat `download-ticket`/`download`; `NotificationWriter.upsertUnread`; `?token=` cho evidence admin; xoá 2 skeleton WebSocket handler; tắt Redis repositories.
+- Tiêu đề notification đấu giá giữ theo code Python, ghi điểm lệch với `API_CONTRACT.md` mục 12.6 vào `PROJECT_STATE.md`.
+
+### 3. Kiểm chứng
+- `.\mvnw.cmd clean test`: **321/321 PASS**, 0 failures/errors/skipped, không cần biến môi trường.
+- `scripts/route_parity.py`: **153/153 HTTP + 2/2 WebSocket**, 0 route chỉ có ở Java (`docs/ROUTE_PARITY.md`).
+- Boot profile mặc định trên `marketplace_java_dev` (`ddl-auto: validate`) thành công; DB dev giữ 10 category + 3 user; DB test sạch.
+
+### 4. Bài học kỹ thuật
+- Hibernate ghi `LocalDateTime` theo múi giờ JVM trước khi chuyển `jdbc.time_zone=UTC`: bắt buộc JVM chạy UTC để dữ liệu dùng chung với Python không lệch.
+- `created_at` của `Notification` là `updatable=false`: upsert làm mới phải dùng native `UPDATE` rồi `refresh`.
+- Tránh inline `{param:regex}` vào so khớp route khi đối chiếu: chuẩn hoá mọi `{...}`/`*` thành `{}`.
