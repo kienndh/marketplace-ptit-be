@@ -9,7 +9,7 @@ public record AdminTutorialCreateDirectRequest(
     @NotBlank @Size(max = 120) String title,
     @Size(max = 500) String description,
     @JsonProperty("action_key") String actionKey,
-    @JsonProperty("is_published") boolean isPublished,
+    @JsonProperty("is_published") Boolean isPublished,
     @NotBlank @JsonProperty("public_id") String publicId,
     @NotBlank @JsonProperty("upload_session_id") String uploadSessionId,
     @JsonProperty("secure_url") String secureUrl,

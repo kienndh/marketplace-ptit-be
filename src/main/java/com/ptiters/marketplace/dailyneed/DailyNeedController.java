@@ -1,65 +1,70 @@
 package com.ptiters.marketplace.dailyneed;
 
+import com.ptiters.marketplace.user.CurrentUserResolver;
+import com.ptiters.marketplace.user.User;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/daily-needs")
+@RequiredArgsConstructor
 public class DailyNeedController {
 
     private final DailyNeedService dailyNeedService;
-
-    public DailyNeedController(DailyNeedService dailyNeedService) {
-        this.dailyNeedService = dailyNeedService;
-    }
+    private final CurrentUserResolver currentUserResolver;
 
     @GetMapping("/recent")
-    public ResponseEntity<List<DailyNeedPublicResponse>> getRecentDailyNeeds(
-            @RequestParam(defaultValue = "20") int limit) {
+    public ResponseEntity<DailyNeedListResponse> getRecentDailyNeeds(
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
         return ResponseEntity.ok(dailyNeedService.getRecentDailyNeeds(limit));
     }
 
     @GetMapping("/today")
-    public ResponseEntity<List<DailyNeedPublicResponse>> getTodayDailyNeeds(
-            @RequestParam(defaultValue = "50") int limit) {
-        return ResponseEntity.ok(dailyNeedService.getTodayDailyNeeds(limit));
+    public ResponseEntity<DailyNeedListResponse> getTodayDailyNeeds() {
+        return ResponseEntity.ok(dailyNeedService.getTodayDailyNeeds());
     }
 
     @GetMapping("/me/today")
-    public ResponseEntity<DailyNeedResponse> getMyTodayDailyNeed(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(dailyNeedService.getMyTodayDailyNeed(null));
+    public ResponseEntity<?> getMyTodayDailyNeed() {
+        User currentUser = currentUserResolver.getCurrentActiveUser();
+        DailyNeedResponse response = dailyNeedService.getMyTodayDailyNeed(currentUser);
+        if (response == null) {
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body("null");
+        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/me/summary")
-    public ResponseEntity<DailyNeedSummaryResponse> getMyDailyNeedSummary(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(dailyNeedService.getMyDailyNeedSummary(null));
+    public ResponseEntity<DailyNeedSummaryResponse> getMyDailyNeedSummary() {
+        User currentUser = currentUserResolver.getCurrentActiveUser();
+        return ResponseEntity.ok(dailyNeedService.getMyDailyNeedSummary(currentUser));
     }
 
     @GetMapping("/users/{publicId}/today")
-    public ResponseEntity<DailyNeedPublicResponse> getUserTodayDailyNeed(
-            @PathVariable UUID publicId) {
-        return ResponseEntity.ok(dailyNeedService.getUserTodayDailyNeed(publicId));
+    public ResponseEntity<?> getUserTodayDailyNeed(@PathVariable UUID publicId) {
+        DailyNeedPublicResponse response = dailyNeedService.getUserTodayDailyNeed(publicId);
+        if (response == null) {
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body("null");
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/me/today")
     public ResponseEntity<DailyNeedResponse> upsertMyTodayDailyNeed(
-            @Valid @RequestBody DailyNeedCreateOrUpdateRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(dailyNeedService.upsertMyTodayDailyNeed(null, request));
+            @Valid @RequestBody DailyNeedCreateOrUpdateRequest request) {
+        User currentUser = currentUserResolver.getCurrentActiveUser();
+        return ResponseEntity.ok(dailyNeedService.upsertMyTodayDailyNeed(currentUser, request));
     }
 
     @DeleteMapping("/me/today")
-    public ResponseEntity<Void> deleteMyTodayDailyNeed(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        dailyNeedService.deleteMyTodayDailyNeed(null);
+    public ResponseEntity<Void> deleteMyTodayDailyNeed() {
+        User currentUser = currentUserResolver.getCurrentActiveUser();
+        dailyNeedService.deleteMyTodayDailyNeed(currentUser);
         return ResponseEntity.noContent().build();
     }
 }

@@ -9,6 +9,7 @@ public record PublicTutorialResponse(
     String description,
     @JsonProperty("video_url") String videoUrl,
     @JsonProperty("thumbnail_url") String thumbnailUrl,
+    @JsonProperty("duration_ms") Long durationMs,
     @JsonProperty("action_key") String actionKey,
     @JsonProperty("sort_order") Integer sortOrder
 ) {}

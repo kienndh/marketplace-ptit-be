@@ -1,94 +1,103 @@
 package com.ptiters.marketplace.tutorial;
 
+import com.ptiters.marketplace.user.CurrentUserResolver;
+import com.ptiters.marketplace.user.User;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/tutorials")
+@RequiredArgsConstructor
 public class AdminTutorialController {
 
     private final TutorialService tutorialService;
-
-    public AdminTutorialController(TutorialService tutorialService) {
-        this.tutorialService = tutorialService;
-    }
+    private final CurrentUserResolver currentUserResolver;
 
     @PostMapping("/upload-signature")
-    public ResponseEntity<TutorialUploadSignatureResponse> getDirectUploadSignature(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(tutorialService.getUploadSignature(null));
+    public ResponseEntity<TutorialUploadSignatureResponse> getDirectUploadSignature() {
+        currentUserResolver.requireAdmin();
+        return ResponseEntity.ok(tutorialService.getUploadSignature());
     }
 
     @PostMapping("/create-direct")
     public ResponseEntity<AdminTutorialResponse> createDirectTutorial(
-            @Valid @RequestBody AdminTutorialCreateDirectRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(tutorialService.createDirectTutorial(null, request));
+            @Valid @RequestBody AdminTutorialCreateDirectRequest request) {
+        User admin = currentUserResolver.requireAdmin();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(tutorialService.createDirectTutorial(admin.getUserId(), request));
     }
 
     @GetMapping
-    public ResponseEntity<List<AdminTutorialResponse>> listAdminTutorials() {
-        return ResponseEntity.ok(tutorialService.listAdminTutorials());
+    public ResponseEntity<List<AdminTutorialResponse>> listAdminTutorials(
+            @RequestParam(value = "feature_key", required = false) String featureKey) {
+        currentUserResolver.requireAdmin();
+        return ResponseEntity.ok(tutorialService.listAdminTutorials(featureKey));
     }
 
     @GetMapping("/{tutorialId}")
     public ResponseEntity<AdminTutorialResponse> getAdminTutorialDetail(
             @PathVariable Long tutorialId) {
+        currentUserResolver.requireAdmin();
         return ResponseEntity.ok(tutorialService.getAdminTutorialDetail(tutorialId));
     }
 
     @PostMapping
     public ResponseEntity<AdminTutorialResponse> createTutorial(
-            @RequestParam("file") Object file,
-            @RequestParam("title") String title,
-            @RequestParam("feature_key") String featureKey,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(tutorialService.createTutorial(null, file, title, featureKey));
+            @RequestParam(value = "video", required = false) MultipartFile video,
+            @RequestParam(value = "feature_key", required = false) String featureKey,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "action_key", required = false) String actionKey,
+            @RequestParam(value = "is_published", defaultValue = "false") boolean isPublished) {
+        User admin = currentUserResolver.requireAdmin();
+        AdminTutorialResponse response = tutorialService.createTutorial(
+                admin.getUserId(), featureKey, title, description, actionKey, isPublished, video
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PatchMapping("/reorder")
-    public ResponseEntity<Void> reorderTutorials(
-            @Valid @RequestBody AdminTutorialReorderRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        tutorialService.reorderTutorials(null, request);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<List<AdminTutorialResponse>> reorderTutorials(
+            @Valid @RequestBody AdminTutorialReorderRequest request) {
+        currentUserResolver.requireAdmin();
+        return ResponseEntity.ok(tutorialService.reorderTutorials(request));
     }
 
     @PatchMapping("/{tutorialId}")
     public ResponseEntity<AdminTutorialResponse> updateTutorialMetadata(
             @PathVariable Long tutorialId,
-            @Valid @RequestBody AdminTutorialUpdateRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(tutorialService.updateTutorialMetadata(tutorialId, null, request));
+            @Valid @RequestBody AdminTutorialUpdateRequest request) {
+        currentUserResolver.requireAdmin();
+        return ResponseEntity.ok(tutorialService.updateTutorialMetadata(tutorialId, request));
     }
 
     @PostMapping("/{tutorialId}/video")
     public ResponseEntity<AdminTutorialResponse> replaceTutorialVideo(
             @PathVariable Long tutorialId,
-            @RequestParam("file") Object file,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(tutorialService.replaceTutorialVideo(tutorialId, null, file));
+            @RequestParam(value = "video", required = false) MultipartFile video) {
+        currentUserResolver.requireAdmin();
+        return ResponseEntity.ok(tutorialService.replaceTutorialVideo(tutorialId, video));
     }
 
     @PostMapping("/{tutorialId}/confirm-direct-video")
     public ResponseEntity<AdminTutorialResponse> confirmDirectTutorialVideo(
             @PathVariable Long tutorialId,
-            @Valid @RequestBody AdminTutorialConfirmDirectVideo request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(tutorialService.confirmDirectTutorialVideo(tutorialId, null, request));
+            @Valid @RequestBody AdminTutorialConfirmDirectVideo request) {
+        currentUserResolver.requireAdmin();
+        return ResponseEntity.ok(tutorialService.confirmDirectTutorialVideo(tutorialId, request));
     }
 
     @DeleteMapping("/{tutorialId}")
-    public ResponseEntity<Void> deleteTutorial(
-            @PathVariable Long tutorialId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        tutorialService.deleteTutorial(tutorialId, null);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Map<String, String>> deleteTutorial(
+            @PathVariable Long tutorialId) {
+        currentUserResolver.requireAdmin();
+        return ResponseEntity.ok(tutorialService.deleteTutorial(tutorialId));
     }
 }

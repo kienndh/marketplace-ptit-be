@@ -85,6 +85,24 @@ public class SecurityConfig {
                 // ------------------------------------------------------------------------------------------
                 // >>> TRACK E (realtime, websocket)
                 .requestMatchers("/ws/**").permitAll()
+                // <<< TRACK C
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK D1 (notification, feedback)
+                // <<< TRACK D1
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK D2 (community moment, tutorial, daily need)
+                .requestMatchers(HttpMethod.GET, "/api/v1/community-moments/hero").permitAll()
+                .requestMatchers("/api/v1/community-moments", "/api/v1/community-moments/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tutorials").permitAll()
+                .requestMatchers("/api/v1/tutorials/**").authenticated()
+                .requestMatchers("/api/v1/daily-needs/me", "/api/v1/daily-needs/me/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/daily-needs/today", "/api/v1/daily-needs/recent", "/api/v1/daily-needs/users/*/today").permitAll()
+                .requestMatchers("/api/v1/daily-needs/**").authenticated()
+                .requestMatchers("/api/v1/admin/community-moments", "/api/v1/admin/community-moments/**").authenticated()
+                .requestMatchers("/api/v1/admin/tutorials", "/api/v1/admin/tutorials/**").authenticated()
+                // <<< TRACK D2
+                // ------------------------------------------------------------------------------------------
+                // >>> TRACK E (realtime, websocket)
                 // <<< TRACK E
                 // ------------------------------------------------------------------------------------------
 
