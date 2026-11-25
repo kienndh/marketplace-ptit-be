@@ -15,6 +15,7 @@ Mỗi báo cáo theo 8 bước của skill `marketplace-java-review` (`.agents/s
 
 1. Phạm vi file đã thêm/sửa (chỉ trong package của track) và xác nhận không đụng file của Wave 0.
 2. Kết quả `.\mvnw.cmd clean test` trên DB riêng của track (số test, PASS/FAIL) và trạng thái DB sau test (0 dòng).
+   Trước khi viết báo cáo phải chạy TOÀN BỘ suite một lần trên DB riêng của track (đặt `TEST_DB_URL`) và ghi kết quả vào đây (xem `PARALLEL_PLAN.md` mục 9).
 3. Các endpoint đã đạt parity với `API_CONTRACT.md` và các khác biệt còn tồn đọng.
 4. Rủi ro / việc cần người điều phối xử lý (ví dụ nâng DB dev, bean thật cần Track E).
 

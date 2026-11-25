@@ -167,3 +167,11 @@ $env:JAVA_HOME = "C:\Users\Acer\.jdks\openjdk-26.0.2.1"; $env:JDK_JAVAC_OPTIONS 
 
 ## 8. Thứ tự merge đề xuất
 Không có phụ thuộc cứng giữa các track (cùng dùng Wave 0). Gợi ý: E → D1 → A → B → C → D2. Sau mỗi merge chạy toàn bộ suite trên `marketplace_java_test`. Xung đột `SecurityConfig` chỉ có thể xảy ra nếu một track sửa ngoài khối của mình.
+
+## 9. Bổ sung sau Wave 0 (ưu tiên hơn prompt track nếu mâu thuẫn)
+- Máy chưa có JDK 21: build/test đúng cách ở mục 7 (JDK 26 + `-proc:full` + `-Dlombok.version=1.18.46`). KHÔNG sửa `pom.xml` vì chuyện JDK.
+- Chữ ký interface dùng chung lấy theo mục 4 (ví dụ `NotificationWriter.create(userId, type, title, body, refType, refId)`), không theo mô tả trong prompt.
+- Safety check test đã nới thành `marketplace_java_test(_[a-z0-9]+)?`. Trong lúc làm chỉ chạy test của track; trước khi viết báo cáo, chạy TOÀN BỘ suite một lần trên DB riêng của track (vẫn đặt `TEST_DB_URL`) và ghi kết quả vào báo cáo.
+- `marketplace_java_dev` chỉ có 10 category + 3 user tổng hợp; không giả định 286 users / 26 categories.
+- Repo `../student-marketplace-be/` có thay đổi chưa commit từ trước (`app/main.py`, `reports/*`, `docs/*`): đọc nguyên trạng làm chuẩn, KHÔNG sửa, KHÔNG stash/checkout.
+- `user_device_tokens` có trong DB test nhưng thiếu ở dev, nên `UserDeviceToken` không phải `@Entity`; Track D1 xử lý token bằng `JdbcTemplate`.
