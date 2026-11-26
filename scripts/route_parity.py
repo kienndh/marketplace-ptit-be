@@ -2,7 +2,8 @@
 """Đối chiếu route FastAPI (Python, chỉ đọc) với mapping Spring MVC/WebSocket (Java).
 
 Cách dùng (từ thư mục marketplace-ptit-be):
-    python scripts/route_parity.py [--python-repo ../student-marketplace-be] [--markdown docs/ROUTE_PARITY.md]
+    python scripts/route_parity.py <đường_dẫn_repo_Python> [--markdown docs/ROUTE_PARITY.md]
+    (repo Python lấy từ GitHub: git clone <URL repo student-marketplace-be> rồi truyền đường dẫn thư mục đã clone)
 
 Quy tắc:
 - Python: quét app/modules/**/(router*.py|*_router.py|websocket.py); mỗi biến APIRouter(prefix=...) giữ prefix riêng,
@@ -93,7 +94,7 @@ def java_routes(root: Path):
 def main():
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     ap = argparse.ArgumentParser()
-    ap.add_argument("--python-repo", default="../student-marketplace-be")
+    ap.add_argument("python_repo", help="đường dẫn tới thư mục repo Python (student-marketplace-be) đã clone từ GitHub")
     ap.add_argument("--markdown", default=None, help="ghi bảng đối chiếu ra file markdown")
     args = ap.parse_args()
 

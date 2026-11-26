@@ -63,7 +63,7 @@ com.ptiters.marketplace/
 - Toàn bộ thay đổi schema CSDL phải được quản lý qua Flyway trong `src/main/resources/db/migration/`.
 - Tên file tuân theo chuẩn: `V<version>__<description>.sql` (hai dấu gạch dưới).
 - Cú pháp SQL phải là **PostgreSQL 15+ native DDL**, không dùng cú pháp MySQL (`AUTO_INCREMENT`, `DATETIME`, `ON UPDATE CURRENT_TIMESTAMP` là các cú pháp không hợp lệ trên PostgreSQL).
-- Mọi schema phải đối chiếu và khớp 100% với tài liệu đặc tả `student-marketplace-be/docs/DB_v7.md`.
+- Schema chuẩn độc lập của repo: `db/schema/schema_c9d0e1f2a3b4.sql` (Alembic head `c9d0e1f2a3b4`) + `db/seed/categories.sql`. Khi cần đối chiếu đặc tả `docs/DB_v7.md` hoặc `docs/API_CONTRACT.md`, clone repo Python `student-marketplace-be` từ GitHub (<URL repo Python>; thư mục cục bộ này đã bị xóa khỏi workspace).
 - Tuyệt đối không xóa hay sửa đổi các file migration đã được áp dụng trong quá khứ nếu đã có môi trường thực tế sử dụng.
 
 ---

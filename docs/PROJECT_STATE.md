@@ -61,7 +61,7 @@
 
 ## 4. Production Environment & Reference Stack (Môi trường tham chiếu & ranh giới)
 - **Production Reference Backend (Python FastAPI)**:
-  - Repository: `student-marketplace-be/` (READ-ONLY).
+  - Repository: `student-marketplace-be/` (READ-ONLY). **Lưu ý**: thư mục này đã bị xóa khỏi workspace cục bộ; khi cần đối chiếu hành vi/API/DB thì clone từ GitHub: <URL repo Python> (đường dẫn thư mục clone truyền cho `scripts/route_parity.py`). Schema chuẩn độc lập nằm ở `db/schema/schema_c9d0e1f2a3b4.sql`.
   - CSDL chuẩn: PostgreSQL 15+ (tài liệu đặc tả: `student-marketplace-be/docs/DB_v7.md`).
   - Hợp đồng API: `student-marketplace-be/docs/API_CONTRACT.md`.
   - Môi trường Production Live Hiện tại: **VPS do giảng viên cung cấp (Teacher-provided VPS)**, phục vụ domain `choptiters.id.vn`. *(Lưu ý lịch sử: Nền tảng Railway trước đây là thông tin triển khai trong quá khứ / historical deployment information)*.
