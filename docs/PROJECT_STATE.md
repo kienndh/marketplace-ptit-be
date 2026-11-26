@@ -76,6 +76,12 @@
     - `marketplace_java_dev`: READ-ONLY snapshot dữ liệu phát triển (`alembic_version: b8c9d0e1f2a3`).
     - `marketplace_java_test`: ISOLATED TEST-WRITE ONLY (schema-only, tự động rollback).
     - `student_marketplace`: READ-ONLY nguồn Python (`alembic_version: b8c9d0e1f2a3`).
+  - **Dựng môi trường local trên máy MỚI** (`compose.yaml`: `postgres:15-alpine` → `sm_postgres:5432`, `redis:7-alpine` → `sm_redis:6379`; user `postgres`, mật khẩu mặc định `dev_password`, DB mặc định `marketplace_java_dev`; đổi qua biến `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`):
+    ```powershell
+    docker compose up -d
+    ```
+    Sau đó tạo thêm DB `marketplace_java_test` / `marketplace_java_e2e` nếu cần (Flyway/Alembic sẽ áp schema khi chạy app/test).
+  - ⚠️ **CẢNH BÁO**: KHÔNG chạy `docker compose up`/`down`/`rm` trên máy đã có sẵn container `sm_postgres`/`sm_redis` (trùng `container_name`, và `down -v`/tạo lại sẽ mất `marketplace_java_dev`, `marketplace_java_test`, `marketplace_java_e2e`).
 
 ---
 
