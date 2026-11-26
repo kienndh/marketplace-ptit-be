@@ -76,12 +76,17 @@ Profile mặc định (JDK 21):
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
-Profile `e2e` (DB `marketplace_java_e2e`, ảnh lưu cục bộ, cổng 8081 vì 8080 hay bị chiếm; script dùng đường dẫn JDK 26 cố định
-`C:\Users\Acer\.jdks\openjdk-26.0.2.1`, sửa trong `scripts/e2e/start-java.ps1` nếu máy bạn khác):
+Profile `e2e` (DB `marketplace_java_e2e`, ảnh lưu cục bộ, cổng 8081 vì 8080 hay bị chiếm). Script dùng `$env:JAVA_HOME` bạn đã đặt
+(không có thì báo lỗi). Mỗi máy tự đặt đường dẫn JDK của mình, ví dụ:
 ```powershell
+$env:JAVA_HOME = "C:\Users\<ten>\.jdks\openjdk-21"
 .\scripts\e2e\start-java.ps1 -Log "$env:TEMP\java-e2e.log"
 ```
 Script tự lấy mật khẩu Postgres từ biến môi trường của container `sm_postgres`; truyền `-FirebaseProjectId` / `-Port` nếu cần.
+Dừng phiên Java đang nghe cổng 8081 (kèm tiến trình `mvnw` cha; chỉ dừng `java.exe`, từ chối nếu cổng do tiến trình khác giữ):
+```powershell
+.\scripts\e2e\stop-java.ps1            # hoặc -Port <cổng>
+```
 
 ## 5. Chạy test
 Test tích hợp chạy trên PostgreSQL thật (`marketplace_java_test`), mỗi test rollback.
@@ -89,8 +94,8 @@ Test tích hợp chạy trên PostgreSQL thật (`marketplace_java_test`), mỗi
 # JDK 21: chỉ cần
 .\mvnw.cmd clean test
 
-# JDK 26 (cần -proc:full cho Lombok):
-$env:JAVA_HOME = "C:\Users\Acer\.jdks\openjdk-26.0.2.1"; $env:JDK_JAVAC_OPTIONS = "-proc:full"
+# JDK 26 (cần -proc:full cho Lombok); đường dẫn JDK là ví dụ, mỗi máy tự đặt:
+$env:JAVA_HOME = "C:\Users\<ten>\.jdks\openjdk-26"; $env:JDK_JAVAC_OPTIONS = "-proc:full"
 .\mvnw.cmd "-Dmaven.compiler.fork=true" "-Dlombok.version=1.18.46" clean test
 ```
 Dùng DB test khác: `$env:TEST_DB_URL = "jdbc:postgresql://localhost:5432/marketplace_java_test_x"` (tên phải khớp quy tắc ở mục 3).
